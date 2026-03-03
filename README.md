@@ -1,66 +1,193 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AroStream
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Netflix-like streaming platform for Ateso/Luganda translated movies, built with:
 
-## About Laravel
+- Laravel 11 (PHP 8.3)
+- PostgreSQL
+- Redis (cache + queues + rate limiting support)
+- Blade + Tailwind
+- Sanctum API for future Flutter app
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Implemented MVP
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Auth (web + API token auth with Sanctum)
+- Roles (`user`, `admin`) + subscription status (`free`, `premium`)
+- Movie catalog with filters: genre, language, VJ, search
+- Trending movies (cached in Redis for 10 minutes)
+- Favorites (watchlist)
+- Reviews + ratings (1 review per user per movie, update-able)
+- Continue watching (watch progress tracking)
+- Player page with `hls.js` + resolution selection
+- Preview clips on hover/tap (or poster fallback)
+- Free watch limit: `30 minutes / rolling 24 hours` for free users
+- Signed streaming playlist URLs
+- Signed expiring download URLs (default 10 minutes)
+- Download access/limits via config
+- Admin CRUD for Movies, Genres, Languages, VJs
+- Docker Compose stack: PHP-FPM, Nginx, PostgreSQL, Redis, queue worker
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Demo Seed Data
 
-## Learning Laravel
+`php artisan migrate:fresh --seed` seeds:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- Languages: Ateso, Luganda
+- VJs: VJ Suldan, VJ Aro, VJ Teso Star
+- Genres: Action, Drama, Comedy, Romance, Sci-Fi, Thriller
+- Sample published movies with placeholder posters + demo HLS/download URLs
+- Demo users:
+  - Admin: `admin@arostream.local` / `password`
+  - Free user: `free@arostream.local` / `password`
+  - Premium user: `premium@arostream.local` / `password`
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Local Run (Without Docker)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. Install deps:
+```bash
+composer install
+npm install
+```
 
-## Laravel Sponsors
+2. Configure env:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. Set DB/Redis in `.env` (PostgreSQL + Redis recommended), then:
+```bash
+php artisan migrate --seed
+```
 
-### Premium Partners
+4. Start:
+```bash
+php artisan serve
+php artisan queue:work
+npm run dev
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Run With Docker
 
-## Contributing
+1. Copy env and key:
+```bash
+cp .env.example .env
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+2. Start containers:
+```bash
+docker compose up -d --build
+```
 
-## Code of Conduct
+3. Install app deps inside container (first run):
+```bash
+docker compose exec app composer install
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. Build frontend:
+```bash
+npm install
+npm run build
+```
 
-## Security Vulnerabilities
+5. Open:
+- App: `http://localhost:8000`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Quota + Download Config
 
-## License
+Set in `.env`:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```env
+FREE_DAILY_SECONDS=1800
+DOWNLOADS_PREMIUM_ONLY=true
+FREE_DAILY_DOWNLOAD_LIMIT=1
+DOWNLOAD_URL_MINUTES=10
+PLAYLIST_URL_MINUTES=10
+```
+
+## API Endpoints (Implemented)
+
+Base URL: `/api`
+
+### Auth (Sanctum)
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout` (auth)
+
+Example login:
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"login":"free@arostream.local","password":"password"}'
+```
+
+### Catalog
+
+- `GET /api/movies?search=&genre=&language=&vj=&sort=trending|new|rating&page=`
+- `GET /api/movies/{slug}`
+- `GET /api/trending`
+
+### Actions (auth required)
+
+- `POST /api/movies/{id}/favorite`
+- `DELETE /api/movies/{id}/favorite`
+- `POST /api/movies/{id}/review`
+- `POST /api/playback/start`
+- `POST /api/playback/heartbeat`
+- `POST /api/playback/stop`
+- `POST /api/movies/{id}/download-link`
+
+Playback start payload:
+```json
+{
+  "movie_id": 1
+}
+```
+
+Playback heartbeat payload:
+```json
+{
+  "movie_id": 1,
+  "view_id": 12,
+  "seconds_watched_delta": 15,
+  "last_position_seconds": 320
+}
+```
+
+### Profile (auth required)
+
+- `GET /api/me`
+
+Returns user, profile, favorites, and free quota state.
+
+## Signed Streaming + Downloads
+
+- Playlist route: `GET /stream/{movie}/master.m3u8` (signed)
+- Download route: `GET /download/{movie}` (signed, expiring)
+
+Both links are generated from backend endpoints; direct access without valid signature is blocked.
+
+## Adding Real HLS Assets
+
+1. Upload HLS outputs (`master.m3u8` + variant playlists/segments) to your storage disk (local/S3).
+2. In admin movie edit, set:
+   - `hls_master_path` (URL or storage path)
+   - optional `preview_clip_path`
+   - optional `download_file_path`
+   - `renditions_json` as comma list (`auto,360p,480p,720p,1080p`)
+3. Publish movie (`status=published`).
+
+If you use S3-compatible storage in production, configure `FILESYSTEM_DISK=s3` + standard AWS/S3 env vars.
+
+## Key Backend Files
+
+- Quota logic: `app/Services/FreeQuotaService.php`
+- Playback tracking: `app/Services/PlaybackService.php`
+- Trending cache: `app/Services/TrendingService.php`
+- Download signing/limits: `app/Services/DownloadService.php`
+- API controllers: `app/Http/Controllers/Api/*`
+- Web streaming routes/controllers: `routes/web.php`, `app/Http/Controllers/StreamController.php`
+- Schema: `database/migrations/*`
+- Docker: `docker-compose.yml`, `docker/php/Dockerfile`, `docker/nginx/default.conf`
