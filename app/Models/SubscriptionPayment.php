@@ -15,6 +15,9 @@ class SubscriptionPayment extends Model
         'provider',
         'amount',
         'currency',
+        'plan_code',
+        'plan_name',
+        'plan_days',
         'status',
         'reference',
         'merchant_reference',
@@ -32,6 +35,7 @@ class SubscriptionPayment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'plan_days' => 'integer',
             'response_payload' => 'array',
             'status_payload' => 'array',
             'confirmed_at' => 'datetime',

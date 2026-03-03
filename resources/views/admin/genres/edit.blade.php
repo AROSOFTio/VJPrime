@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'Edit Genre - AroStream'">
+<x-layouts.stream :title="'Edit Genre - VJPrime'">
     @include('admin.partials.nav')
 
     <section class="mt-5 max-w-xl rounded-xl border border-white/10 bg-slate-900/70 p-5">
@@ -12,3 +12,4 @@
         </form>
     </section>
 </x-layouts.stream>
+

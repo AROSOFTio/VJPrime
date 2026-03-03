@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'Admin Dashboard - AroStream'">
+<x-layouts.stream :title="'Admin Dashboard - VJPrime'">
     @include('admin.partials.nav')
 
     <section class="mt-5 grid gap-4 sm:grid-cols-3">
@@ -16,3 +16,4 @@
         </div>
     </section>
 </x-layouts.stream>
+

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'AroStream' }}</title>
+    <title>{{ $title ?? config('app.name', 'VJPrime') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans antialiased bg-slate-950 text-slate-100 min-h-screen">
@@ -26,7 +26,7 @@
     <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur">
         <nav class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-6">
-                <a href="{{ route('home') }}" class="text-2xl font-semibold tracking-tight text-red-500">AroStream</a>
+                <a href="{{ route('home') }}" class="text-2xl font-semibold tracking-tight text-red-500">{{ config('app.name', 'VJPrime') }}</a>
                 <a href="{{ route('home') }}" class="text-sm text-slate-200 hover:text-white">Home</a>
                 <a href="{{ route('browse') }}" class="text-sm text-slate-200 hover:text-white">Browse</a>
                 @auth
@@ -95,3 +95,4 @@
     </script>
 </body>
 </html>
+

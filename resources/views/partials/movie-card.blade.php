@@ -4,7 +4,7 @@
 ])
 
 @php
-    $poster = $movie->poster_url ?: 'https://picsum.photos/seed/arostream-fallback/600/900';
+    $poster = $movie->poster_url ?: 'https://picsum.photos/seed/VJPrime-fallback/600/900';
     $preview = $movie->asset?->preview_clip_path;
 @endphp
 
@@ -50,3 +50,4 @@
         <span>{{ strtoupper($movie->age_rating ?? 'PG') }}</span>
     </div>
 </article>
+

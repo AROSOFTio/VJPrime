@@ -1,4 +1,4 @@
-# AroStream
+# VJPrime
 
 A Netflix-like streaming platform for Ateso/Luganda translated movies, built with:
 
@@ -38,9 +38,9 @@ A Netflix-like streaming platform for Ateso/Luganda translated movies, built wit
 - Genres: Action, Drama, Comedy, Romance, Sci-Fi, Thriller
 - Sample published movies with placeholder posters + demo HLS/download URLs
 - Demo users:
-  - Admin: `admin@arostream.local` / `password`
-  - Free user: `free@arostream.local` / `password`
-  - Premium user: `premium@arostream.local` / `password`
+  - Admin: `admin@vjprime.local` / `password`
+  - Free user: `free@vjprime.local` / `password`
+  - Premium user: `premium@vjprime.local` / `password`
 
 ## Local Run (Without Docker)
 
@@ -108,13 +108,23 @@ DOWNLOAD_URL_MINUTES=10
 PLAYLIST_URL_MINUTES=10
 
 PESAPAL_ENABLED=false
-PESAPAL_BASE_URL=https://cybqa.pesapal.com/pesapalv3
+PESAPAL_BASE_URL=https://pay.pesapal.com/v3
 PESAPAL_CONSUMER_KEY=
 PESAPAL_CONSUMER_SECRET=
 PESAPAL_CURRENCY=UGX
-PESAPAL_PREMIUM_AMOUNT=10000
+PESAPAL_CALLBACK_URL=https://vjprime.arosoft.io/billing/pesapal/callback
+PESAPAL_IPN_URL=https://vjprime.arosoft.io/billing/pesapal/ipn
 PESAPAL_NOTIFICATION_TYPE=GET
 PESAPAL_NOTIFICATION_ID=
+PESAPAL_DEFAULT_PLAN=daily
+PESAPAL_PLAN_DAILY_AMOUNT=1000
+PESAPAL_PLAN_DAILY_DAYS=1
+PESAPAL_PLAN_WEEKLY_AMOUNT=6000
+PESAPAL_PLAN_WEEKLY_DAYS=7
+PESAPAL_PLAN_BIWEEKLY_AMOUNT=11000
+PESAPAL_PLAN_BIWEEKLY_DAYS=14
+PESAPAL_PLAN_MONTHLY_AMOUNT=21000
+PESAPAL_PLAN_MONTHLY_DAYS=30
 ```
 
 ## API Endpoints (Implemented)
@@ -132,7 +142,7 @@ Example login:
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
-  -d '{"login":"free@arostream.local","password":"password"}'
+  -d '{"login":"free@vjprime.local","password":"password"}'
 ```
 
 ### Catalog
@@ -181,7 +191,7 @@ Returns user, profile, favorites, and free quota state.
 1. Set all `PESAPAL_*` values in `.env`.
 2. Login as a free user.
 3. Go to `Account` -> `Upgrade`.
-4. Click `Pay with Pesapal`.
+4. Choose a plan and click `Pay with Pesapal`.
 5. After successful callback/IPN, user subscription is set to `premium`.
 
 ## Signed Streaming + Downloads

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'role',
         'subscription_status',
+        'subscription_expires_at',
         'daily_free_seconds_used',
         'last_reset_at',
         'device_hash',
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_reset_at' => 'datetime',
+            'subscription_expires_at' => 'datetime',
         ];
     }
 
@@ -103,6 +105,10 @@ class User extends Authenticatable
 
     public function isPremium(): bool
     {
-        return $this->subscription_status === 'premium';
+        if ($this->subscription_status !== 'premium') {
+            return false;
+        }
+
+        return ! $this->subscription_expires_at || $this->subscription_expires_at->isFuture();
     }
 }

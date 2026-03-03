@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'Account - AroStream'" :wallpaper-posters="[auth()->user()->profile?->avatar_url]">
+<x-layouts.stream :title="'Account - VJPrime'" :wallpaper-posters="[auth()->user()->profile?->avatar_url]">
     <section class="grid gap-5 lg:grid-cols-[1fr,320px]">
         <div class="space-y-4 rounded-xl border border-white/10 bg-slate-900/70 p-5">
             <h1 class="text-2xl font-semibold">Account</h1>
@@ -11,7 +11,20 @@
                 </div>
                 <div class="rounded-md border border-white/10 bg-slate-950/60 p-3">
                     <p class="text-xs text-slate-400">Subscription</p>
-                    <p class="text-sm font-medium">{{ ucfirst($user->subscription_status) }}</p>
+                    <p class="text-sm font-medium">
+                        @if ($user->isPremium())
+                            Premium
+                        @elseif ($user->subscription_status === 'premium')
+                            Expired
+                        @else
+                            {{ ucfirst($user->subscription_status) }}
+                        @endif
+                    </p>
+                    @if ($user->subscription_expires_at)
+                        <p class="mt-1 text-xs text-slate-400">
+                            Until: {{ $user->subscription_expires_at->timezone(config('app.timezone'))->toDayDateTimeString() }}
+                        </p>
+                    @endif
                 </div>
                 <div class="rounded-md border border-white/10 bg-slate-950/60 p-3">
                     <p class="text-xs text-slate-400">Favorites</p>
@@ -47,3 +60,4 @@
         </aside>
     </section>
 </x-layouts.stream>
+

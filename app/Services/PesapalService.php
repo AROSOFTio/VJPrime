@@ -21,9 +21,60 @@ class PesapalService
         return (string) config('pesapal.currency', 'UGX');
     }
 
+    public function getPlans(): array
+    {
+        $plans = config('pesapal.plans', []);
+
+        if (! is_array($plans)) {
+            return [];
+        }
+
+        return collect($plans)
+            ->filter(fn ($plan) => is_array($plan))
+            ->map(function (array $plan, string $key) {
+                return [
+                    'code' => (string) ($plan['code'] ?? $key),
+                    'name' => (string) ($plan['name'] ?? strtoupper($key)),
+                    'amount' => (float) ($plan['amount'] ?? 0),
+                    'days' => max((int) ($plan['days'] ?? 1), 1),
+                ];
+            })
+            ->filter(fn (array $plan) => $plan['amount'] > 0)
+            ->values()
+            ->all();
+    }
+
+    public function getPlan(string $code): ?array
+    {
+        return collect($this->getPlans())
+            ->first(fn (array $plan) => $plan['code'] === $code);
+    }
+
+    public function getDefaultPlan(): ?array
+    {
+        $defaultCode = (string) config('pesapal.default_plan', 'daily');
+        $defaultPlan = $this->getPlan($defaultCode);
+
+        if ($defaultPlan) {
+            return $defaultPlan;
+        }
+
+        return $this->getPlans()[0] ?? null;
+    }
+
     public function getDefaultAmount(): float
     {
-        return (float) config('pesapal.default_amount', 10000);
+        return (float) ($this->getDefaultPlan()['amount'] ?? 10000);
+    }
+
+    public function getCallbackUrl(): string
+    {
+        return (string) config('pesapal.callback_url', route('billing.pesapal.callback'));
+    }
+
+    public function getIpnUrl(): string
+    {
+        return (string) config('pesapal.ipn_url', route('billing.pesapal.ipn'));
     }
 
     public function requestToken(): string

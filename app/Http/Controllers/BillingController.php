@@ -26,7 +26,7 @@ class BillingController extends Controller
             'payments' => $payments,
             'isPesapalEnabled' => $this->pesapalService->enabled(),
             'currency' => $this->pesapalService->getCurrency(),
-            'amount' => $this->pesapalService->getDefaultAmount(),
+            'plans' => $this->pesapalService->getPlans(),
         ]);
     }
 
@@ -42,20 +42,30 @@ class BillingController extends Controller
             return redirect()->route('billing.upgrade')->with('error', 'Pesapal is not configured yet.');
         }
 
+        $validated = $request->validate([
+            'plan' => ['required', 'string'],
+        ]);
+
+        $plan = $this->pesapalService->getPlan($validated['plan']);
+
+        if (! $plan) {
+            return redirect()->route('billing.upgrade')->with('error', 'Invalid subscription plan selected.');
+        }
+
         $token = $this->pesapalService->requestToken();
-        $ipnUrl = route('billing.pesapal.ipn');
-        $callbackUrl = route('billing.pesapal.callback');
+        $ipnUrl = $this->pesapalService->getIpnUrl();
+        $callbackUrl = $this->pesapalService->getCallbackUrl();
         $ipnId = $this->pesapalService->ensureIpnId($token, $ipnUrl);
 
         $reference = 'VJP-'.strtoupper(Str::random(10));
-        $amount = $this->pesapalService->getDefaultAmount();
+        $amount = (float) $plan['amount'];
         $currency = $this->pesapalService->getCurrency();
 
         $payload = [
             'id' => $reference,
             'currency' => $currency,
             'amount' => $amount,
-            'description' => 'VJPrime Premium Subscription',
+            'description' => sprintf('VJPrime %s Subscription', $plan['name']),
             'callback_url' => $callbackUrl,
             'notification_id' => $ipnId,
             'billing_address' => [
@@ -80,6 +90,9 @@ class BillingController extends Controller
             'provider' => 'pesapal',
             'amount' => $amount,
             'currency' => $currency,
+            'plan_code' => $plan['code'],
+            'plan_name' => $plan['name'],
+            'plan_days' => $plan['days'],
             'status' => 'pending',
             'reference' => $reference,
             'merchant_reference' => $response['merchant_reference'] ?? $reference,
@@ -163,7 +176,14 @@ class BillingController extends Controller
             if ($this->pesapalService->isPaid($statusPayload)) {
                 $payment->status = 'paid';
                 $payment->confirmed_at = now();
-                $payment->user()->update(['subscription_status' => 'premium']);
+                $planDays = max((int) ($payment->plan_days ?? 1), 1);
+                $currentExpiry = $payment->user->subscription_expires_at;
+                $base = $currentExpiry && $currentExpiry->isFuture() ? $currentExpiry : now();
+
+                $payment->user()->update([
+                    'subscription_status' => 'premium',
+                    'subscription_expires_at' => $base->copy()->addDays($planDays),
+                ]);
             } else {
                 $payment->status = strtolower((string) ($statusPayload['status'] ?? 'pending'));
             }

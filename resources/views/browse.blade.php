@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'Browse - AroStream'" :wallpaper-posters="$movies->pluck('poster_url')">
+<x-layouts.stream :title="'Browse - VJPrime'" :wallpaper-posters="$movies->pluck('poster_url')">
     <section class="mb-6 rounded-xl border border-white/10 bg-slate-900/70 p-4">
         <form method="GET" action="{{ route('browse') }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <input
@@ -63,3 +63,4 @@
         {{ $movies->links() }}
     </div>
 </x-layouts.stream>
+

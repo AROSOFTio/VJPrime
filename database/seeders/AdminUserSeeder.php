@@ -11,8 +11,8 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::updateOrCreate(['email' => 'admin@arostream.local'], [
-            'name' => 'AroStream Admin',
+        $admin = User::updateOrCreate(['email' => 'admin@vjprime.local'], [
+            'name' => 'VJPrime Admin',
             'password' => Hash::make('password'),
             'role' => 'admin',
             'subscription_status' => 'premium',
@@ -25,7 +25,7 @@ class AdminUserSeeder extends Seeder
             'avatar_url' => null,
         ]);
 
-        $freeUser = User::updateOrCreate(['email' => 'free@arostream.local'], [
+        $freeUser = User::updateOrCreate(['email' => 'free@vjprime.local'], [
             'name' => 'Free Viewer',
             'password' => Hash::make('password'),
             'role' => 'user',
@@ -39,7 +39,7 @@ class AdminUserSeeder extends Seeder
             'avatar_url' => null,
         ]);
 
-        $premiumUser = User::updateOrCreate(['email' => 'premium@arostream.local'], [
+        $premiumUser = User::updateOrCreate(['email' => 'premium@vjprime.local'], [
             'name' => 'Premium Viewer',
             'password' => Hash::make('password'),
             'role' => 'user',
@@ -54,3 +54,4 @@ class AdminUserSeeder extends Seeder
         ]);
     }
 }
+

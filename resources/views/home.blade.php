@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'AroStream'" :wallpaper-posters="$wallpaperPosters">
+<x-layouts.stream :title="'VJPrime'" :wallpaper-posters="$wallpaperPosters">
     @php
         $hero = $featured->first() ?? $trending->first();
     @endphp
@@ -71,3 +71,4 @@
         @endforeach
     </section>
 </x-layouts.stream>
+

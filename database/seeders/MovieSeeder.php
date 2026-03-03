@@ -81,8 +81,8 @@ class MovieSeeder extends Seeder
             $movie = Movie::updateOrCreate(['slug' => $entry['slug']], [
                 'title' => $entry['title'],
                 'description' => $entry['description'],
-                'poster_url' => "https://picsum.photos/seed/arostream-poster-{$index}/600/900",
-                'backdrop_url' => "https://picsum.photos/seed/arostream-backdrop-{$index}/1600/900",
+                'poster_url' => "https://picsum.photos/seed/VJPrime-poster-{$index}/600/900",
+                'backdrop_url' => "https://picsum.photos/seed/VJPrime-backdrop-{$index}/1600/900",
                 'year' => 2018 + $index,
                 'duration_seconds' => 5400 + ($index * 240),
                 'age_rating' => Arr::random(['PG', 'PG-13', '16', '18']),
@@ -156,3 +156,4 @@ class MovieSeeder extends Seeder
         });
     }
 }
+

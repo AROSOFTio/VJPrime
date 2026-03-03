@@ -1,4 +1,4 @@
-<x-layouts.stream :title="$movie->title . ' - AroStream'" :wallpaper-posters="[$movie->backdrop_url, $movie->poster_url]">
+<x-layouts.stream :title="$movie->title . ' - VJPrime'" :wallpaper-posters="[$movie->backdrop_url, $movie->poster_url]">
     <section class="grid gap-6 lg:grid-cols-[280px,1fr]">
         <div>
             <img src="{{ $movie->poster_url }}" alt="{{ $movie->title }}" class="w-full rounded-xl border border-white/10 object-cover">
@@ -104,3 +104,4 @@
         </section>
     @endif
 </x-layouts.stream>
+

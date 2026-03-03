@@ -30,20 +30,32 @@ class BillingController extends Controller
             ], 422);
         }
 
+        $validated = $request->validate([
+            'plan' => ['required', 'string'],
+        ]);
+
+        $plan = $this->pesapalService->getPlan($validated['plan']);
+
+        if (! $plan) {
+            return response()->json([
+                'message' => 'Invalid subscription plan selected.',
+            ], 422);
+        }
+
         $token = $this->pesapalService->requestToken();
-        $ipnUrl = route('billing.pesapal.ipn');
-        $callbackUrl = route('billing.pesapal.callback');
+        $ipnUrl = $this->pesapalService->getIpnUrl();
+        $callbackUrl = $this->pesapalService->getCallbackUrl();
         $ipnId = $this->pesapalService->ensureIpnId($token, $ipnUrl);
 
         $reference = 'VJP-'.strtoupper(Str::random(10));
-        $amount = $this->pesapalService->getDefaultAmount();
+        $amount = (float) $plan['amount'];
         $currency = $this->pesapalService->getCurrency();
 
         $payload = [
             'id' => $reference,
             'currency' => $currency,
             'amount' => $amount,
-            'description' => 'VJPrime Premium Subscription',
+            'description' => sprintf('VJPrime %s Subscription', $plan['name']),
             'callback_url' => $callbackUrl,
             'notification_id' => $ipnId,
             'billing_address' => [
@@ -68,6 +80,9 @@ class BillingController extends Controller
             'provider' => 'pesapal',
             'amount' => $amount,
             'currency' => $currency,
+            'plan_code' => $plan['code'],
+            'plan_name' => $plan['name'],
+            'plan_days' => $plan['days'],
             'status' => 'pending',
             'reference' => $reference,
             'merchant_reference' => $response['merchant_reference'] ?? $reference,
@@ -87,6 +102,11 @@ class BillingController extends Controller
             'status' => $payment->status,
             'amount' => $payment->amount,
             'currency' => $payment->currency,
+            'plan' => [
+                'code' => $payment->plan_code,
+                'name' => $payment->plan_name,
+                'days' => $payment->plan_days,
+            ],
         ]);
     }
 

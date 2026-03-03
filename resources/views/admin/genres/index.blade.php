@@ -1,4 +1,4 @@
-<x-layouts.stream :title="'Admin Genres - AroStream'">
+<x-layouts.stream :title="'Admin Genres - VJPrime'">
     @include('admin.partials.nav')
 
     <section class="mt-5 rounded-xl border border-white/10 bg-slate-900/70 p-4">
@@ -29,3 +29,4 @@
         <div class="mt-4">{{ $genres->links() }}</div>
     </section>
 </x-layouts.stream>
+
