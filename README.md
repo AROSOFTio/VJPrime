@@ -13,6 +13,7 @@ A Netflix-like streaming platform for Ateso/Luganda translated movies, built wit
 - Auth (web + API token auth with Sanctum)
 - Roles (`user`, `admin`) + subscription status (`free`, `premium`)
 - Movie catalog with filters: genre, language, VJ, search
+- Movie + series episode support (`content_type`, season/episode metadata)
 - Trending movies (cached in Redis for 10 minutes)
 - Favorites (watchlist)
 - Reviews + ratings (1 review per user per movie, update-able)
@@ -24,6 +25,8 @@ A Netflix-like streaming platform for Ateso/Luganda translated movies, built wit
 - Signed expiring download URLs (default 10 minutes)
 - Download access/limits via config
 - Admin CRUD for Movies, Genres, Languages, VJs
+- Admin upload workflow for poster/backdrop/preview/download files
+- Pesapal premium checkout (web + API checkout endpoint)
 - Docker Compose stack: PHP-FPM, Nginx, PostgreSQL, Redis, queue worker
 
 ## Demo Seed Data
@@ -103,6 +106,15 @@ DOWNLOADS_PREMIUM_ONLY=true
 FREE_DAILY_DOWNLOAD_LIMIT=1
 DOWNLOAD_URL_MINUTES=10
 PLAYLIST_URL_MINUTES=10
+
+PESAPAL_ENABLED=false
+PESAPAL_BASE_URL=https://cybqa.pesapal.com/pesapalv3
+PESAPAL_CONSUMER_KEY=
+PESAPAL_CONSUMER_SECRET=
+PESAPAL_CURRENCY=UGX
+PESAPAL_PREMIUM_AMOUNT=10000
+PESAPAL_NOTIFICATION_TYPE=GET
+PESAPAL_NOTIFICATION_ID=
 ```
 
 ## API Endpoints (Implemented)
@@ -138,6 +150,8 @@ curl -X POST http://localhost:8000/api/auth/login \
 - `POST /api/playback/heartbeat`
 - `POST /api/playback/stop`
 - `POST /api/movies/{id}/download-link`
+- `POST /api/billing/pesapal/checkout`
+- `GET /api/billing/payments`
 
 Playback start payload:
 ```json
@@ -162,6 +176,14 @@ Playback heartbeat payload:
 
 Returns user, profile, favorites, and free quota state.
 
+## Pesapal Checkout (Web)
+
+1. Set all `PESAPAL_*` values in `.env`.
+2. Login as a free user.
+3. Go to `Account` -> `Upgrade`.
+4. Click `Pay with Pesapal`.
+5. After successful callback/IPN, user subscription is set to `premium`.
+
 ## Signed Streaming + Downloads
 
 - Playlist route: `GET /stream/{movie}/master.m3u8` (signed)
@@ -169,9 +191,16 @@ Returns user, profile, favorites, and free quota state.
 
 Both links are generated from backend endpoints; direct access without valid signature is blocked.
 
-## Adding Real HLS Assets
+## Adding Real HLS Assets / Uploading Content
 
-1. Upload HLS outputs (`master.m3u8` + variant playlists/segments) to your storage disk (local/S3).
+1. In admin, open `Movies` -> `Add Movie or Series Episode`.
+2. Choose `Movie` or `Series Episode`, then fill metadata.
+3. You can provide direct URLs/paths or upload files:
+   - `poster_file` / `backdrop_file` (stored on public disk)
+   - `hls_master_upload` (stored on default filesystem disk)
+   - `preview_clip_upload` (stored on public disk)
+   - `download_file_upload` (stored on default filesystem disk)
+4. For full HLS adaptive playback, upload the full HLS output (`master.m3u8` + variants + segments) to your storage disk and set `hls_master_path`.
 2. In admin movie edit, set:
    - `hls_master_path` (URL or storage path)
    - optional `preview_clip_path`

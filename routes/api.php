@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\MovieController;
@@ -28,6 +29,8 @@ Route::middleware(['auth:sanctum', 'reset.quota'])->group(function () {
     Route::post('/playback/start', [PlaybackController::class, 'start'])->middleware('playback.quota');
     Route::post('/playback/heartbeat', [PlaybackController::class, 'heartbeat'])->middleware('throttle:heartbeat');
     Route::post('/playback/stop', [PlaybackController::class, 'stop']);
+    Route::post('/billing/pesapal/checkout', [BillingController::class, 'checkout']);
+    Route::get('/billing/payments', [BillingController::class, 'history']);
 
     Route::get('/me', [ProfileController::class, 'me']);
 });

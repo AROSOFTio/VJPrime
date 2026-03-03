@@ -5,11 +5,19 @@
         </div>
 
         <div class="space-y-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-red-400">{{ $movie->language->name }} · {{ $movie->vj->name }}</p>
+            <p class="text-xs uppercase tracking-[0.25em] text-red-400">
+                {{ ucfirst($movie->content_type ?? 'movie') }} - {{ $movie->language->name }} - {{ $movie->vj->name }}
+                @if (($movie->content_type ?? 'movie') === 'series')
+                    - S{{ $movie->season_number ?? 1 }}E{{ $movie->episode_number ?? 1 }}
+                @endif
+            </p>
             <h1 class="text-3xl font-semibold">{{ $movie->title }}</h1>
+            @if (($movie->content_type ?? 'movie') === 'series' && $movie->series_title)
+                <p class="text-sm text-slate-300">Series: {{ $movie->series_title }}</p>
+            @endif
             <p class="text-sm text-slate-300">{{ $movie->description }}</p>
             <p class="text-xs text-slate-400">
-                {{ $movie->year }} · {{ gmdate('H:i:s', $movie->duration_seconds) }} · {{ strtoupper($movie->age_rating ?? 'PG') }}
+                {{ $movie->year }} - {{ gmdate('H:i:s', $movie->duration_seconds) }} - {{ strtoupper($movie->age_rating ?? 'PG') }}
             </p>
             <div class="flex flex-wrap gap-2">
                 @foreach ($movie->genres as $genre)
@@ -76,7 +84,7 @@
         <div class="space-y-3">
             @forelse ($movie->reviews->sortByDesc('updated_at')->take(5) as $review)
                 <div class="rounded-md border border-white/10 bg-slate-900/70 p-4">
-                    <p class="text-sm font-semibold">{{ $review->user->name }} · {{ $review->rating }}/5</p>
+                    <p class="text-sm font-semibold">{{ $review->user->name }} - {{ $review->rating }}/5</p>
                     <p class="mt-1 text-sm text-slate-300">{{ $review->body ?: 'No comment' }}</p>
                 </div>
             @empty

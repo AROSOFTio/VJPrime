@@ -42,7 +42,7 @@
                     Reset time:
                     {{ $resetAt ? $resetAt->timezone(config('app.timezone'))->toDayDateTimeString() : 'N/A' }}
                 </p>
-                <button class="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">Upgrade to Premium</button>
+                <a href="{{ route('billing.upgrade') }}" class="mt-4 block w-full rounded-md bg-red-600 px-4 py-2 text-center text-sm font-semibold text-white">Upgrade to Premium</a>
             @endif
         </aside>
     </section>

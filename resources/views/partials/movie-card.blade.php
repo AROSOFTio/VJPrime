@@ -26,7 +26,12 @@
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
             <div class="absolute bottom-2 left-2 right-2">
                 <p class="line-clamp-1 text-xs font-semibold text-white">{{ $movie->title }}</p>
-                <p class="text-[11px] text-slate-300">{{ $movie->language?->name }} · {{ $movie->vj?->name }}</p>
+                <p class="text-[11px] text-slate-300">
+                    {{ ucfirst($movie->content_type ?? 'movie') }} - {{ $movie->language?->name }} - {{ $movie->vj?->name }}
+                </p>
+                @if (($movie->content_type ?? 'movie') === 'series')
+                    <p class="text-[11px] text-slate-300">S{{ $movie->season_number ?? 1 }}E{{ $movie->episode_number ?? 1 }}</p>
+                @endif
             </div>
         </div>
     </a>

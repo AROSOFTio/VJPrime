@@ -1,6 +1,6 @@
 <x-layouts.stream :title="'Browse - AroStream'" :wallpaper-posters="$movies->pluck('poster_url')">
     <section class="mb-6 rounded-xl border border-white/10 bg-slate-900/70 p-4">
-        <form method="GET" action="{{ route('browse') }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <form method="GET" action="{{ route('browse') }}" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <input
                 type="text"
                 name="search"
@@ -28,6 +28,12 @@
                 @foreach ($vjs as $vj)
                     <option value="{{ $vj->slug }}" @selected(($filters['vj'] ?? '') === $vj->slug)>{{ $vj->name }}</option>
                 @endforeach
+            </select>
+
+            <select name="type" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white">
+                <option value="">All Types</option>
+                <option value="movie" @selected(($filters['type'] ?? '') === 'movie')>Movies</option>
+                <option value="series" @selected(($filters['type'] ?? '') === 'series')>Series</option>
             </select>
 
             <div class="flex gap-2">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\GenreController as AdminGenreController;
 use App\Http\Controllers\Admin\LanguageController as AdminLanguageController;
 use App\Http\Controllers\Admin\MovieController as AdminMovieController;
 use App\Http\Controllers\Admin\VjController as AdminVjController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BrowseController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\FavoriteController;
@@ -32,11 +33,18 @@ Route::middleware(['auth', 'reset.quota'])->group(function () {
     Route::delete('/movies/{movie}/favorite', [FavoriteController::class, 'destroy'])->name('favorites.destroy');
     Route::post('/movies/{movie}/review', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/movies/{movie}/download-link', [DownloadController::class, 'createLink'])->name('downloads.link');
+    Route::get('/billing/upgrade', [BillingController::class, 'upgrade'])->name('billing.upgrade');
+    Route::post('/billing/pesapal/checkout', [BillingController::class, 'checkout'])->name('billing.pesapal.checkout');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::match(['get', 'post'], '/billing/pesapal/callback', [BillingController::class, 'callback'])
+    ->name('billing.pesapal.callback');
+Route::match(['get', 'post'], '/billing/pesapal/ipn', [BillingController::class, 'ipn'])
+    ->name('billing.pesapal.ipn');
 
 Route::get('/stream/{movie}/master.m3u8', [StreamController::class, 'playlist'])
     ->name('stream.playlist')

@@ -19,6 +19,7 @@ class BrowseController extends Controller
             'genre' => ['nullable', 'string', 'max:120'],
             'language' => ['nullable', 'string', 'max:120'],
             'vj' => ['nullable', 'string', 'max:120'],
+            'type' => ['nullable', 'in:movie,series'],
             'sort' => ['nullable', 'in:trending,new,rating'],
         ]);
 
@@ -61,6 +62,10 @@ class BrowseController extends Controller
                     ->where('vjs.slug', $vj)
                     ->orWhere('vjs.id', $vj);
             });
+        }
+
+        if ($type = ($filters['type'] ?? null)) {
+            $query->where('content_type', $type);
         }
 
         $sort = $filters['sort'] ?? 'trending';

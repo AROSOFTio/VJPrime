@@ -31,6 +31,9 @@
                 <a href="{{ route('browse') }}" class="text-sm text-slate-200 hover:text-white">Browse</a>
                 @auth
                     <a href="{{ route('account.index') }}" class="text-sm text-slate-200 hover:text-white">Account</a>
+                    @if (! auth()->user()->isPremium())
+                        <a href="{{ route('billing.upgrade') }}" class="text-sm text-slate-200 hover:text-white">Upgrade</a>
+                    @endif
                     @if (auth()->user()->isAdmin())
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-slate-200 hover:text-white">Admin</a>
                     @endif

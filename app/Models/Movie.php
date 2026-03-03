@@ -16,6 +16,10 @@ class Movie extends Model
     protected $fillable = [
         'title',
         'slug',
+        'content_type',
+        'series_title',
+        'season_number',
+        'episode_number',
         'description',
         'poster_url',
         'backdrop_url',
@@ -35,6 +39,8 @@ class Movie extends Model
         return [
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
+            'season_number' => 'integer',
+            'episode_number' => 'integer',
         ];
     }
 
@@ -95,5 +101,10 @@ class Movie extends Model
             ->where(function ($q) {
                 $q->whereNull('published_at')->orWhere('published_at', '<=', now());
             });
+    }
+
+    public function isSeries(): bool
+    {
+        return $this->content_type === 'series';
     }
 }
