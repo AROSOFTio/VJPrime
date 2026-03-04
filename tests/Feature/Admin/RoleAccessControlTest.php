@@ -38,6 +38,15 @@ class RoleAccessControlTest extends TestCase
         $this->actingAs($financeManager)
             ->get(route('admin.reports.index'))
             ->assertOk();
+        $this->actingAs($financeManager)
+            ->get(route('admin.reports.revenue'))
+            ->assertOk();
+        $this->actingAs($financeManager)
+            ->get(route('admin.reports.content'))
+            ->assertOk();
+        $this->actingAs($financeManager)
+            ->get(route('admin.reports.users'))
+            ->assertOk();
 
         $this->actingAs($financeManager)
             ->get(route('admin.movies.index'))

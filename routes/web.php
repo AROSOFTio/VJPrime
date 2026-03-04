@@ -70,8 +70,18 @@ Route::prefix('admin')
         Route::get('/reports', [AdminReportController::class, 'index'])
             ->name('reports.index')
             ->middleware('can:view-reports');
-        Route::get('/reports/export', [AdminReportController::class, 'export'])
+        Route::get('/reports/revenue', [AdminReportController::class, 'revenue'])
+            ->name('reports.revenue')
+            ->middleware('can:view-reports');
+        Route::get('/reports/content', [AdminReportController::class, 'content'])
+            ->name('reports.content')
+            ->middleware('can:view-reports');
+        Route::get('/reports/users', [AdminReportController::class, 'users'])
+            ->name('reports.users')
+            ->middleware('can:view-reports');
+        Route::get('/reports/export/{section}', [AdminReportController::class, 'export'])
             ->name('reports.export')
+            ->where('section', 'revenue|content|users')
             ->middleware('can:view-reports');
 
         Route::resource('users', AdminUserController::class)
