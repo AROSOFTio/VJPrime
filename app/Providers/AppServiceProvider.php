@@ -25,7 +25,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('components.layouts.stream', function ($view): void {
-            $view->with('onlineUsersCount', app(OnlineUsersService::class)->count(5));
+            $windowMinutes = max(1, (int) config('streaming.online.window_minutes', 5));
+            $view->with('onlineUsersCount', app(OnlineUsersService::class)->count($windowMinutes));
         });
 
         RateLimiter::for('auth-api', function (Request $request) {

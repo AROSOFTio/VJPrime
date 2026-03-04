@@ -7,11 +7,14 @@ use App\Models\Movie;
 use App\Models\User;
 use App\Services\OnlineUsersService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(OnlineUsersService $onlineUsersService): View
+    public function index(Request $request, OnlineUsersService $onlineUsersService): View
     {
+        $windowMinutes = max(1, (int) config('streaming.online.window_minutes', 5));
+
         return view('admin.dashboard', [
             'movieCount' => Movie::count(),
             'publishedMovieCount' => Movie::where('status', 'published')->count(),
@@ -19,7 +22,7 @@ class DashboardController extends Controller
             'adminCount' => User::where('role', User::ROLE_ADMIN)->count(),
             'contentTeamCount' => User::whereIn('role', [User::ROLE_CONTENT_MANAGER, User::ROLE_CONTRIBUTOR])->count(),
             'financeManagerCount' => User::where('role', User::ROLE_FINANCE_MANAGER)->count(),
-            'onlineUsers' => $onlineUsersService->count(5),
+            'onlineUsers' => $onlineUsersService->count($windowMinutes, $request),
         ]);
     }
 }
