@@ -42,6 +42,21 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_users_can_authenticate_using_phone_number(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+256700111222',
+        ]);
+
+        $response = $this->post('/login', [
+            'login' => '+256700111222',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

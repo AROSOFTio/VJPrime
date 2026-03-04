@@ -41,9 +41,27 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $login = (string) $this->input('login');
+        $rawLogin = (string) $this->input('login');
+        $normalizedLogin = (string) preg_replace('/\s+/', '', $rawLogin);
+        $isEmailLogin = (bool) filter_var($normalizedLogin, FILTER_VALIDATE_EMAIL);
+        $isUgandaPhoneLogin = (bool) preg_match('/^\+256\d{9}$/', $normalizedLogin);
+        $loginColumn = 'name';
+        $loginValue = $rawLogin;
+
+        if ($isEmailLogin || $isUgandaPhoneLogin) {
+            $loginValue = $normalizedLogin;
+        }
+
+        if ($isEmailLogin) {
+            $loginColumn = 'email';
+        }
+
+        if ($isUgandaPhoneLogin) {
+            $loginColumn = 'phone';
+        }
+
         $credentials = [
-            filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'name' => $login,
+            $loginColumn => $loginValue,
             'password' => (string) $this->input('password'),
         ];
 

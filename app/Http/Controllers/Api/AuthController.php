@@ -14,9 +14,14 @@ class AuthController extends Controller
 {
     public function register(Request $request): JsonResponse
     {
+        $request->merge([
+            'phone' => (string) preg_replace('/\s+/', '', (string) $request->input('phone')),
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:16', 'regex:/^\+256\d{9}$/', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'display_name' => ['nullable', 'string', 'max:255'],
         ]);
@@ -24,6 +29,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'],
             'password' => Hash::make($validated['password']),
             'last_reset_at' => now(),
         ]);
@@ -49,9 +55,12 @@ class AuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:120'],
         ]);
 
+        $normalizedLogin = (string) preg_replace('/\s+/', '', $validated['login']);
+
         $user = User::query()
-            ->where('email', $validated['login'])
+            ->where('email', $normalizedLogin)
             ->orWhere('name', $validated['login'])
+            ->orWhere('phone', $normalizedLogin)
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {

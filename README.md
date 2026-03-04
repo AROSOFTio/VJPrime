@@ -11,6 +11,7 @@ A Netflix-like streaming platform for Ateso/Luganda translated movies, built wit
 ## Implemented MVP
 
 - Auth (web + API token auth with Sanctum)
+- Google OAuth sign-up/login (web)
 - Roles (`user`, `admin`) + subscription status (`free`, `premium`)
 - Movie catalog with filters: genre, language, VJ, search
 - Movie + series episode support (`content_type`, season/episode metadata)
@@ -96,11 +97,21 @@ npm run build
 5. Open:
 - App: `http://localhost:8000`
 
+## Google Sign-Up Setup
+
+1. Create OAuth credentials in Google Cloud Console.
+2. Add an authorized redirect URI matching `GOOGLE_REDIRECT_URI` (default: `http://localhost/auth/google/callback`).
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` in `.env`.
+
 ## Quota + Download Config
 
 Set in `.env`:
 
 ```env
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
+
 FREE_DAILY_SECONDS=1800
 DOWNLOADS_PREMIUM_ONLY=true
 FREE_DAILY_DOWNLOAD_LIMIT=1
@@ -136,6 +147,9 @@ Base URL: `/api`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/logout` (auth)
+
+`POST /api/auth/register` now expects Uganda phone numbers in `+256#########` format.
+`POST /api/auth/login` accepts email, username, or phone in the `login` field.
 
 Example login:
 ```bash
