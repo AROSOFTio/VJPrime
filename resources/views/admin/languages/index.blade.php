@@ -1,5 +1,4 @@
-<x-layouts.stream :title="'Admin Languages - VJPrime'">
-    @include('admin.partials.nav')
+<x-layouts.admin :title="'Admin Languages - VJPrime'">
 
     <section class="mt-5 rounded-xl border border-white/10 bg-slate-900/70 p-4">
         <div class="mb-4 flex items-center justify-between">
@@ -28,5 +27,6 @@
 
         <div class="mt-4">{{ $languages->links() }}</div>
     </section>
-</x-layouts.stream>
+</x-layouts.admin>
+
 

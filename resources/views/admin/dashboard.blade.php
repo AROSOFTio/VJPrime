@@ -1,5 +1,4 @@
-<x-layouts.stream :title="'Admin Dashboard - VJPrime'">
-    @include('admin.partials.nav')
+<x-layouts.admin :title="'Admin Dashboard - VJPrime'">
 
     <section class="mt-5 grid gap-4 sm:grid-cols-3">
         <div class="rounded-xl border border-white/10 bg-slate-900/70 p-4">
@@ -15,5 +14,6 @@
             <p class="mt-1 text-2xl font-semibold">{{ $userCount }}</p>
         </div>
     </section>
-</x-layouts.stream>
+</x-layouts.admin>
+
 

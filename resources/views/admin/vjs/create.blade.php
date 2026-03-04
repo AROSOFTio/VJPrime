@@ -1,5 +1,4 @@
-<x-layouts.stream :title="'Create VJ - VJPrime'">
-    @include('admin.partials.nav')
+<x-layouts.admin :title="'Create VJ - VJPrime'">
 
     <section class="mt-5 max-w-xl rounded-xl border border-white/10 bg-slate-900/70 p-5">
         <h1 class="text-lg font-semibold">Add VJ</h1>
@@ -10,5 +9,6 @@
             <button class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
         </form>
     </section>
-</x-layouts.stream>
+</x-layouts.admin>
+
 

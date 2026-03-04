@@ -1,5 +1,4 @@
-<x-layouts.stream :title="'Edit Movie - VJPrime'">
-    @include('admin.partials.nav')
+<x-layouts.admin :title="'Edit Movie - VJPrime'">
 
     <section class="mt-5 rounded-xl border border-white/10 bg-slate-900/70 p-5">
         <h1 class="text-lg font-semibold">Edit Movie</h1>
@@ -9,5 +8,6 @@
             @include('admin.movies._form')
         </form>
     </section>
-</x-layouts.stream>
+</x-layouts.admin>
+
 

@@ -86,3 +86,4 @@
 <button class="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">
     {{ $isEdit ? 'Update Movie' : 'Create Movie' }}
 </button>
+
