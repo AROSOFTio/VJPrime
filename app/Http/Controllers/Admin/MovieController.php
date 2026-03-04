@@ -19,11 +19,6 @@ use Illuminate\Validation\ValidationException;
 
 class MovieController extends Controller
 {
-    public function __construct()
-    {
-        $this->authorizeResource(Movie::class, 'movie');
-    }
-
     public function index(): View
     {
         $movies = Movie::query()
