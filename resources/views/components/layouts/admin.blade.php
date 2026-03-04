@@ -12,8 +12,8 @@
         <aside class="border-b border-white/10 bg-slate-900/80 p-4 backdrop-blur lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
             <div class="mb-6">
                 <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Admin Panel</p>
-                <a href="{{ route('admin.dashboard') }}" class="mt-2 inline-flex items-center">
-                    <x-application-logo variant="red-green" class="text-xl sm:text-2xl" />
+                <a href="{{ route('admin.dashboard') }}" class="mt-2 inline-flex items-center rounded-md bg-white/95 px-2.5 py-1.5 shadow-sm">
+                    <x-application-logo class="text-lg sm:text-xl" />
                 </a>
             </div>
 

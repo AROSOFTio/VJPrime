@@ -74,19 +74,13 @@
             @endif
 
             <div class="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-8 sm:px-6">
-                <a href="/" class="mb-6 inline-flex items-center justify-center">
-                    <x-application-logo variant="red-green" class="text-3xl drop-shadow-[0_10px_26px_rgba(15,23,42,0.7)] sm:text-4xl" />
+                <a href="/" class="mb-6 inline-flex items-center justify-center rounded-2xl bg-white/95 px-4 py-3 shadow-[0_16px_42px_rgba(2,6,23,0.45)]">
+                    <x-application-logo :tagline="true" class="text-4xl sm:text-5xl" />
                 </a>
 
                 <div class="w-full max-w-md rounded-2xl border border-white/20 bg-slate-950/65 p-6 shadow-[0_24px_80px_rgba(2,6,23,0.65)] backdrop-blur-md sm:p-7">
                     {{ $slot }}
                 </div>
-
-                @if ($isCinematicAuth)
-                    <p class="mt-4 text-center text-xs text-slate-200/70">
-                        Action-style background clips with automatic fallback.
-                    </p>
-                @endif
             </div>
         </div>
 
