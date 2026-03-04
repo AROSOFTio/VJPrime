@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -87,11 +88,13 @@ class MovieController extends Controller
         $validated = $this->validateRequest($request, $movie);
         $validated['created_by'] = $request->user()->id;
 
-        $movie->fill(Arr::except($validated, ['genre_ids', 'hls_master_path', 'preview_clip_path', 'download_file_path', 'renditions_json', 'size_bytes']));
-        $movie->save();
+        DB::transaction(function () use ($movie, $request, $validated): void {
+            $movie->fill(Arr::except($validated, ['genre_ids', 'hls_master_path', 'preview_clip_path', 'download_file_path', 'renditions_json', 'size_bytes']));
+            $movie->save();
 
-        $movie->genres()->sync($validated['genre_ids'] ?? []);
-        $movie->asset()->updateOrCreate([], $this->assetPayload($request, $movie, $validated));
+            $movie->genres()->sync($validated['genre_ids'] ?? []);
+            $movie->asset()->updateOrCreate([], $this->assetPayload($request, $movie, $validated));
+        });
 
         return redirect()->route('admin.movies.index')->with('status', 'Movie created.');
     }
@@ -107,10 +110,11 @@ class MovieController extends Controller
     {
         $validated = $this->validateRequest($request, $movie);
 
-        $movie->update(Arr::except($validated, ['genre_ids', 'hls_master_path', 'preview_clip_path', 'download_file_path', 'renditions_json', 'size_bytes']));
-        $movie->genres()->sync($validated['genre_ids'] ?? []);
-
-        $movie->asset()->updateOrCreate([], $this->assetPayload($request, $movie, $validated));
+        DB::transaction(function () use ($movie, $request, $validated): void {
+            $movie->update(Arr::except($validated, ['genre_ids', 'hls_master_path', 'preview_clip_path', 'download_file_path', 'renditions_json', 'size_bytes']));
+            $movie->genres()->sync($validated['genre_ids'] ?? []);
+            $movie->asset()->updateOrCreate([], $this->assetPayload($request, $movie, $validated));
+        });
 
         return redirect()->route('admin.movies.index')->with('status', 'Movie updated.');
     }
@@ -128,6 +132,9 @@ class MovieController extends Controller
         $previewMaxKb = $this->maxUploadKb(512000);
         $downloadMaxKb = $this->maxUploadKb(1572864);
         $hlsPackageMaxKb = $this->maxUploadKb(1024000);
+        $defaultDisk = (string) config('filesystems.default', 'local');
+        $defaultDiskDriver = (string) config("filesystems.disks.{$defaultDisk}.driver", 'local');
+        $publicStoragePath = public_path('storage');
 
         return [
             'languages' => Language::query()->orderBy('name')->get(),
@@ -140,6 +147,12 @@ class MovieController extends Controller
                 'download' => $downloadMaxKb,
                 'server_upload' => $this->toKb((string) ini_get('upload_max_filesize')),
                 'server_post' => $this->toKb((string) ini_get('post_max_size')),
+            ],
+            'diskInfo' => [
+                'name' => $defaultDisk,
+                'driver' => $defaultDiskDriver,
+                'supports_hls_package' => $defaultDiskDriver === 'local',
+                'public_storage_linked' => is_link($publicStoragePath) || is_dir($publicStoragePath),
             ],
         ];
     }
@@ -174,7 +187,7 @@ class MovieController extends Controller
             'genre_ids' => ['nullable', 'array'],
             'genre_ids.*' => ['exists:genres,id'],
             'hls_master_path' => ['nullable', 'string', 'max:2048'],
-            'hls_master_upload' => ['nullable', 'file', 'max:'.$hlsMasterMaxKb],
+            'hls_master_upload' => ['nullable', 'file', 'extensions:m3u8', 'max:'.$hlsMasterMaxKb],
             'hls_package_upload' => ['nullable', 'file', 'mimes:zip', 'max:'.$hlsPackageMaxKb],
             'preview_clip_path' => ['nullable', 'string', 'max:2048'],
             'preview_clip_upload' => ['nullable', 'file', 'max:'.$previewMaxKb],
@@ -183,6 +196,7 @@ class MovieController extends Controller
             'renditions_json' => ['nullable', 'string', 'max:5000'],
             'size_bytes' => ['nullable', 'integer', 'min:0'],
         ], [
+            'hls_master_upload.extensions' => 'HLS master upload must be a .m3u8 playlist file.',
             'hls_master_upload.max' => 'HLS master upload is larger than allowed by current server limits.',
             'hls_package_upload.max' => 'HLS package upload is larger than allowed by current server limits.',
             'preview_clip_upload.max' => 'Preview upload is larger than allowed by current server limits.',
@@ -209,6 +223,15 @@ class MovieController extends Controller
         $validated['hls_master_path'] = $this->cleanString($validated['hls_master_path'] ?? null);
         $validated['preview_clip_path'] = $this->cleanString($validated['preview_clip_path'] ?? null);
         $validated['download_file_path'] = $this->cleanString($validated['download_file_path'] ?? null);
+
+        $hasUploadedMaster = $request->file('hls_master_upload') instanceof UploadedFile;
+        $hasUploadedPackage = $request->file('hls_package_upload') instanceof UploadedFile;
+        $hasExistingMaster = ! empty($movie->asset?->hls_master_path);
+        if (empty($validated['hls_master_path']) && ! $hasUploadedMaster && ! $hasUploadedPackage && ! $hasExistingMaster) {
+            throw ValidationException::withMessages([
+                'hls_master_path' => 'Provide HLS master path or upload an HLS .m3u8 file / ZIP package.',
+            ]);
+        }
 
         if ($request->file('poster_file') instanceof UploadedFile) {
             $validated['poster_url'] = Storage::disk('public')->url(

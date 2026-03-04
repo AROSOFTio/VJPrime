@@ -230,23 +230,64 @@ Both links are generated from backend endpoints; direct access without valid sig
 
 ## Adding Real HLS Assets / Uploading Content
 
-1. In admin, open `Movies` -> `Add Movie or Series Episode`.
-2. Choose `Movie` or `Series Episode`, then fill metadata.
-3. You can provide direct URLs/paths or upload files:
-   - `poster_file` / `backdrop_file` (stored on public disk)
-   - `hls_master_upload` (stored on default filesystem disk)
-   - `hls_package_upload` (ZIP containing master playlist + variants + segments; extracted automatically on local disks)
-   - `preview_clip_upload` (stored on public disk)
-   - `download_file_upload` (stored on default filesystem disk)
-4. For full HLS adaptive playback, upload the full HLS output (`master.m3u8` + variants + segments) as ZIP with `hls_package_upload`, or upload manually to storage and set `hls_master_path`.
-2. In admin movie edit, set:
-   - `hls_master_path` (URL or storage path)
-   - optional `preview_clip_path`
-   - optional `download_file_path`
-   - `renditions_json` as comma list (`auto,360p,480p,720p,1080p`)
-3. Publish movie (`status=published`).
+### Simple workflow (recommended)
 
-If you use S3-compatible storage in production, configure `FILESYSTEM_DISK=s3` + standard AWS/S3 env vars.
+1. Convert your movie/episode to HLS output (`master.m3u8`, variant playlists, and segment files).
+2. Zip the full HLS folder.
+3. In admin: `Movies` -> `Add Movie or Series Episode`.
+4. Fill required fields:
+   - `title`
+   - `content_type` (`movie` or `series`)
+   - `duration_seconds`
+   - `language_id`
+   - `vj_id`
+5. In the streaming section, do one of:
+   - Upload `hls_package_upload` (best for local disk deployments).
+   - Provide `hls_master_path` if your HLS is already hosted (S3/CDN/local storage path).
+6. Optionally add:
+   - `preview_clip_upload` or `preview_clip_path`
+   - `download_file_upload` or `download_file_path`
+   - poster/backdrop URL or files
+7. Set `status=published` and save.
+
+### Series upload example
+
+For series episodes:
+- Set `content_type=series`
+- Set `series_title`, `season_number`, `episode_number`
+- Keep each episode as its own movie row (one row per episode)
+
+### Important server settings for uploads
+
+Large uploads fail unless both web server and PHP limits are high enough.
+
+Nginx:
+```nginx
+client_max_body_size 2048M;
+```
+
+Apache:
+```apache
+LimitRequestBody 2147483648
+```
+
+PHP (`php.ini`):
+```ini
+upload_max_filesize = 2048M
+post_max_size = 2048M
+max_execution_time = 600
+max_input_time = 600
+memory_limit = 1024M
+```
+
+Then restart services and clear config cache:
+```bash
+php artisan optimize:clear
+php artisan storage:link
+```
+
+If you use S3-compatible storage in production, configure `FILESYSTEM_DISK=s3` + standard AWS/S3 env vars.  
+For S3 disk, use `hls_master_path` to your hosted playlist URL/path (HLS ZIP extraction is local-disk only).
 
 ## Key Backend Files
 

@@ -23,6 +23,99 @@ const formatBytes = (bytes) => {
     return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
+const parseJson = (payload) => {
+    if (! payload) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(payload);
+    } catch (_error) {
+        return null;
+    }
+};
+
+const firstValidationError = (errors) => {
+    if (! errors || typeof errors !== 'object') {
+        return null;
+    }
+
+    const firstKey = Object.keys(errors)[0];
+    if (! firstKey) {
+        return null;
+    }
+
+    const value = errors[firstKey];
+    if (Array.isArray(value) && value.length > 0) {
+        return String(value[0]);
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+        return value;
+    }
+
+    return null;
+};
+
+const uploadErrorMessage = (xhr) => {
+    const contentType = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
+    const responsePayload = contentType.includes('application/json') ? parseJson(xhr.responseText) : null;
+    const validationMessage = firstValidationError(responsePayload?.errors);
+
+    if (validationMessage) {
+        return validationMessage;
+    }
+
+    if (typeof responsePayload?.message === 'string' && responsePayload.message.trim() !== '') {
+        return responsePayload.message;
+    }
+
+    if (xhr.status === 413) {
+        return 'Upload is too large for this server. Reduce file size or increase Nginx/Apache and PHP upload limits.';
+    }
+
+    if (xhr.status === 419) {
+        return 'Upload failed because the session expired or payload was rejected. Refresh the page and try again.';
+    }
+
+    if (xhr.status === 422) {
+        return 'Some fields are invalid. Check the form errors and submit again.';
+    }
+
+    if (xhr.status >= 500) {
+        return 'Server error during upload. Check server logs and upload limits.';
+    }
+
+    return `Upload failed (${xhr.status}). Check file sizes and server limits, then try again.`;
+};
+
+const initContentTypeToggle = () => {
+    document.querySelectorAll('form[data-upload-form]').forEach((form) => {
+        const typeSelect = form.querySelector('select[name="content_type"]');
+        if (! (typeSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        const seriesFields = Array.from(form.querySelectorAll('[data-series-field]'));
+        if (! seriesFields.length) {
+            return;
+        }
+
+        const syncSeriesFields = () => {
+            const isSeries = typeSelect.value === 'series';
+
+            seriesFields.forEach((fieldWrap) => {
+                fieldWrap.classList.toggle('hidden', ! isSeries);
+            });
+        };
+
+        typeSelect.addEventListener('change', syncSeriesFields);
+        syncSeriesFields();
+    });
+};
+
+initContentTypeToggle();
+
 const uploadForms = document.querySelectorAll('form[data-upload-form]');
 
 uploadForms.forEach((form) => {
@@ -59,6 +152,7 @@ uploadForms.forEach((form) => {
         const xhr = new XMLHttpRequest();
         xhr.open((form.getAttribute('method') || 'POST').toUpperCase(), form.getAttribute('action') || window.location.href, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('Accept', 'application/json');
 
         xhr.upload.addEventListener('progress', (progressEvent) => {
             if (! progressEvent.lengthComputable) {
@@ -109,7 +203,7 @@ uploadForms.forEach((form) => {
             }
 
             if (progressLabel) {
-                progressLabel.textContent = `Upload failed (${xhr.status}). Check file sizes and server limits, then try again.`;
+                progressLabel.textContent = uploadErrorMessage(xhr);
             }
         });
 
