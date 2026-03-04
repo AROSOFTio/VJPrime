@@ -62,8 +62,7 @@ class ReportController extends Controller
             'sort' => $this->cleanString($validated['sort'] ?? null) ?: 'newest',
         ];
 
-        $query = SubscriptionPayment::query()
-            ->with('user:id,name,email')
+        $baseQuery = SubscriptionPayment::query()
             ->whereBetween('created_at', [$from, $to])
             ->when($filters['status'], fn (Builder $builder, string $status) => $builder->where('status', $status))
             ->when($filters['provider'], fn (Builder $builder, string $provider) => $builder->where('provider', $provider))
@@ -88,6 +87,8 @@ class ReportController extends Controller
                 });
             });
 
+        $query = (clone $baseQuery)->with('user:id,name,email');
+
         match ($filters['sort']) {
             'oldest' => $query->oldest('created_at'),
             'amount_high' => $query->orderByDesc('amount'),
@@ -97,11 +98,12 @@ class ReportController extends Controller
 
         $payments = (clone $query)->paginate(25)->withQueryString();
 
-        $planBreakdown = (clone $query)
-            ->selectRaw("COALESCE(plan_name, plan_code, 'Unknown') as plan_name")
+        $planBreakdown = (clone $baseQuery)
+            ->reorder()
+            ->selectRaw("COALESCE(plan_name, plan_code, 'Unknown') as plan_label")
             ->selectRaw('COUNT(*) as tx_count')
             ->selectRaw('SUM(amount) as amount_total')
-            ->groupBy('plan_name')
+            ->groupByRaw("COALESCE(plan_name, plan_code, 'Unknown')")
             ->orderByDesc('amount_total')
             ->limit(12)
             ->get();
@@ -115,11 +117,11 @@ class ReportController extends Controller
             'payments' => $payments,
             'planBreakdown' => $planBreakdown,
             'metrics' => [
-                'total_transactions' => (clone $query)->count(),
-                'gross_amount' => (float) (clone $query)->sum('amount'),
-                'paid_transactions' => (clone $query)->where('status', 'paid')->count(),
-                'paid_amount' => (float) (clone $query)->where('status', 'paid')->sum('amount'),
-                'unique_payers' => (clone $query)->whereNotNull('user_id')->distinct('user_id')->count('user_id'),
+                'total_transactions' => (clone $baseQuery)->count(),
+                'gross_amount' => (float) (clone $baseQuery)->sum('amount'),
+                'paid_transactions' => (clone $baseQuery)->where('status', 'paid')->count(),
+                'paid_amount' => (float) (clone $baseQuery)->where('status', 'paid')->sum('amount'),
+                'unique_payers' => (clone $baseQuery)->whereNotNull('user_id')->distinct('user_id')->count('user_id'),
             ],
         ]);
     }

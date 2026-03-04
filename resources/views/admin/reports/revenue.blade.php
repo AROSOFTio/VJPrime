@@ -80,7 +80,7 @@
                     <tbody>
                         @forelse ($planBreakdown as $row)
                             <tr class="border-t border-white/10 text-slate-200">
-                                <td class="px-2 py-2">{{ $row->plan_name }}</td>
+                                <td class="px-2 py-2">{{ $row->plan_label }}</td>
                                 <td class="px-2 py-2">{{ number_format((int) $row->tx_count) }}</td>
                                 <td class="px-2 py-2">{{ number_format((float) $row->amount_total, 2) }}</td>
                             </tr>
