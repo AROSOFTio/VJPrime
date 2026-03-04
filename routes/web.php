@@ -49,6 +49,10 @@ Route::match(['get', 'post'], '/billing/pesapal/ipn', [BillingController::class,
 Route::get('/stream/{movie}/master.m3u8', [StreamController::class, 'playlist'])
     ->name('stream.playlist')
     ->middleware('signed');
+Route::get('/stream/{movie}/asset/{encodedPath}', [StreamController::class, 'asset'])
+    ->where('encodedPath', '[A-Za-z0-9\-_]+')
+    ->name('stream.asset')
+    ->middleware('signed');
 Route::get('/download/{movie}', [StreamController::class, 'download'])
     ->name('stream.download')
     ->middleware('signed');

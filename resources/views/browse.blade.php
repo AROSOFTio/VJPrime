@@ -5,7 +5,7 @@
                 type="text"
                 name="search"
                 value="{{ $filters['search'] ?? '' }}"
-                placeholder="Search title..."
+                placeholder="Search title, series, or description..."
                 class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-400"
             >
 
@@ -43,6 +43,7 @@
                     <option value="rating" @selected(($filters['sort'] ?? '') === 'rating')>Rating</option>
                 </select>
                 <button class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white">Apply</button>
+                <a href="{{ route('browse') }}" class="rounded-md border border-white/20 px-4 py-2 text-sm text-slate-200">Reset</a>
             </div>
         </form>
     </section>
@@ -63,4 +64,3 @@
         {{ $movies->links() }}
     </div>
 </x-layouts.stream>
-

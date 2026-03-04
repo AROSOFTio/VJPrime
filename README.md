@@ -69,6 +69,19 @@ php artisan queue:work
 npm run dev
 ```
 
+## Production Requirements
+
+- PHP `8.2+` (Laravel 11 will fail on PHP 7.x)
+- Extensions: `pdo`, `pdo_pgsql` (or your DB driver), `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `fileinfo`, `zip`
+- Node.js `18+`
+- Composer `2+`
+
+If aaPanel has multiple PHP versions installed, run artisan commands with your site's PHP binary, for example:
+
+```bash
+/www/server/php/82/bin/php artisan migrate --force
+```
+
 ## Run With Docker
 
 1. Copy env and key:
@@ -222,9 +235,10 @@ Both links are generated from backend endpoints; direct access without valid sig
 3. You can provide direct URLs/paths or upload files:
    - `poster_file` / `backdrop_file` (stored on public disk)
    - `hls_master_upload` (stored on default filesystem disk)
+   - `hls_package_upload` (ZIP containing master playlist + variants + segments; extracted automatically on local disks)
    - `preview_clip_upload` (stored on public disk)
    - `download_file_upload` (stored on default filesystem disk)
-4. For full HLS adaptive playback, upload the full HLS output (`master.m3u8` + variants + segments) to your storage disk and set `hls_master_path`.
+4. For full HLS adaptive playback, upload the full HLS output (`master.m3u8` + variants + segments) as ZIP with `hls_package_upload`, or upload manually to storage and set `hls_master_path`.
 2. In admin movie edit, set:
    - `hls_master_path` (URL or storage path)
    - optional `preview_clip_path`

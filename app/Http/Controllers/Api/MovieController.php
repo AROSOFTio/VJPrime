@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Movie;
+use App\Support\MovieCatalogFilters;
 use App\Services\TrendingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -15,14 +16,7 @@ class MovieController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:120'],
-            'genre' => ['nullable', 'string', 'max:120'],
-            'language' => ['nullable', 'string', 'max:120'],
-            'vj' => ['nullable', 'string', 'max:120'],
-            'type' => ['nullable', 'in:movie,series'],
-            'sort' => ['nullable', 'in:trending,new,rating'],
-        ]);
+        $filters = MovieCatalogFilters::normalize($request->validate(MovieCatalogFilters::validationRules()));
 
         $query = Movie::query()
             ->published()
@@ -34,34 +28,7 @@ class MovieController extends Controller
                 'views as weekly_views_count' => fn (Builder $builder) => $builder->where('created_at', '>=', now()->subDays(7)),
             ]);
 
-        if ($search = ($filters['search'] ?? null)) {
-            $query->where(fn (Builder $builder) => $builder
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%"));
-        }
-
-        if ($genre = ($filters['genre'] ?? null)) {
-            $query->whereHas('genres', fn (Builder $builder) => $builder->where('slug', $genre)->orWhere('id', $genre));
-        }
-
-        if ($language = ($filters['language'] ?? null)) {
-            $query->whereHas('language', fn (Builder $builder) => $builder->where('code', $language)->orWhere('id', $language));
-        }
-
-        if ($vj = ($filters['vj'] ?? null)) {
-            $query->whereHas('vj', fn (Builder $builder) => $builder->where('slug', $vj)->orWhere('id', $vj));
-        }
-
-        if ($type = ($filters['type'] ?? null)) {
-            $query->where('content_type', $type);
-        }
-
-        $sort = $filters['sort'] ?? 'trending';
-        match ($sort) {
-            'new' => $query->latest('published_at'),
-            'rating' => $query->orderByDesc('reviews_avg_rating')->orderByDesc('published_at'),
-            default => $query->orderByDesc('weekly_views_count')->orderByDesc('favorites_count')->orderByDesc('published_at'),
-        };
+        MovieCatalogFilters::apply($query, $filters);
 
         $movies = $query->paginate(15)->withQueryString();
 

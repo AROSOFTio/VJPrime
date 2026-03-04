@@ -16,6 +16,20 @@
     </div>
 @endif
 
+<div class="mb-3 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+    <p class="font-medium">Upload limits (effective on this server)</p>
+    <p class="mt-1">
+        HLS playlist: {{ number_format(($uploadLimits['hls_master'] ?? 0) / 1024, 1) }} MB |
+        HLS ZIP package: {{ number_format(($uploadLimits['hls_package'] ?? 0) / 1024, 1) }} MB |
+        Preview: {{ number_format(($uploadLimits['preview'] ?? 0) / 1024, 1) }} MB |
+        Download: {{ number_format(($uploadLimits['download'] ?? 0) / 1024, 1) }} MB
+    </p>
+    <p class="mt-1 text-[11px] text-sky-200/80">
+        PHP `upload_max_filesize`: {{ number_format(($uploadLimits['server_upload'] ?? 0) / 1024, 1) }} MB,
+        `post_max_size`: {{ number_format(($uploadLimits['server_post'] ?? 0) / 1024, 1) }} MB.
+    </p>
+</div>
+
 <div class="grid gap-3 sm:grid-cols-2">
     <input type="text" name="title" value="{{ old('title', $movie->title ?? '') }}" placeholder="Title" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
     <input type="text" name="slug" value="{{ old('slug', $movie->slug ?? '') }}" placeholder="Slug (optional)" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
@@ -73,6 +87,7 @@
 
     <input type="text" name="hls_master_path" value="{{ old('hls_master_path', $asset->hls_master_path ?? '') }}" placeholder="HLS master path or URL" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
     <input type="file" name="hls_master_upload" accept=".m3u8" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
+    <input type="file" name="hls_package_upload" accept=".zip,application/zip" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
 
     <input type="text" name="preview_clip_path" value="{{ old('preview_clip_path', $asset->preview_clip_path ?? '') }}" placeholder="Preview clip path or URL" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
     <input type="file" name="preview_clip_upload" accept="video/mp4,video/webm,video/*" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm sm:col-span-2">
@@ -84,7 +99,16 @@
     <input type="number" name="size_bytes" value="{{ old('size_bytes', $asset->size_bytes ?? '') }}" placeholder="File size bytes" class="rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
 </div>
 
-<button class="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">
+<div class="mt-4 hidden rounded-md border border-sky-500/30 bg-slate-950/60 p-3" data-upload-progress-wrap>
+    <div class="mb-2 flex items-center justify-between text-xs text-sky-100">
+        <span data-upload-progress-label>Preparing upload...</span>
+        <span data-upload-progress-percent>0%</span>
+    </div>
+    <div class="h-2 overflow-hidden rounded bg-white/10">
+        <div class="h-full w-0 bg-sky-500 transition-all duration-200" data-upload-progress-bar></div>
+    </div>
+</div>
+
+<button type="submit" class="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white" data-upload-submit>
     {{ $isEdit ? 'Update Movie' : 'Create Movie' }}
 </button>
-
