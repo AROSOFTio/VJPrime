@@ -36,12 +36,19 @@
                     @if (! auth()->user()->isPremium())
                         <a href="{{ route('billing.upgrade') }}" class="text-sm text-slate-200 hover:text-white">Upgrade</a>
                     @endif
-                    @if (auth()->user()->isAdmin())
+                    @if (auth()->user()->canAccessAdminPanel())
                         <a href="{{ route('admin.dashboard') }}" class="text-sm text-slate-200 hover:text-white">Admin</a>
                     @endif
                 @endauth
             </div>
             <div class="flex items-center gap-3">
+                <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                    <span class="relative inline-flex h-2 w-2">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"></span>
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span>
+                    </span>
+                    <span data-online-users-count>{{ number_format((int) ($onlineUsersCount ?? 0)) }} online</span>
+                </div>
                 @auth
                     <span class="hidden sm:inline text-xs text-slate-300">
                         {{ auth()->user()->profile?->display_name ?? auth()->user()->name }}
@@ -75,6 +82,30 @@
     </main>
 
     <script>
+        const onlineUsersNode = document.querySelector('[data-online-users-count]');
+        if (onlineUsersNode) {
+            const refreshOnlineUsers = async () => {
+                try {
+                    const response = await fetch('{{ route('online-users.count') }}', {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    });
+
+                    if (! response.ok) {
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    const count = Number(payload.online_users ?? 0);
+                    onlineUsersNode.textContent = `${Number.isFinite(count) ? count.toLocaleString() : 0} online`;
+                } catch (_error) {
+                    // Ignore polling failures and keep last known value.
+                }
+            };
+
+            window.setInterval(refreshOnlineUsers, 30000);
+        }
+
         document.querySelectorAll('[data-preview]').forEach((video) => {
             const activate = () => {
                 if (!video.dataset.loaded && video.dataset.src) {

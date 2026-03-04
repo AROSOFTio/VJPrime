@@ -18,7 +18,7 @@ class UserController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'role' => ['nullable', 'in:admin,user'],
+            'role' => ['nullable', Rule::in(User::ROLES)],
             'subscription_status' => ['nullable', 'in:free,premium'],
             'sort' => ['nullable', 'in:newest,oldest,name,email'],
         ]);
@@ -100,7 +100,7 @@ class UserController extends Controller
     {
         $validated = $this->validateRequest($request, $user);
 
-        if ($request->user()->is($user) && $validated['role'] !== 'admin') {
+        if ($request->user()->is($user) && $validated['role'] !== User::ROLE_ADMIN) {
             return back()->withInput()->with('error', 'You cannot remove your own admin role.');
         }
 
@@ -172,7 +172,7 @@ class UserController extends Controller
             'display_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', $emailRule],
             'phone' => ['nullable', 'string', 'max:16', 'regex:/^\+256\d{9}$/', $phoneRule],
-            'role' => ['required', 'in:admin,user'],
+            'role' => ['required', Rule::in(User::ROLES)],
             'subscription_status' => ['required', 'in:free,premium'],
             'subscription_expires_at' => ['nullable', 'date'],
             'password' => $passwordRule,
@@ -197,20 +197,20 @@ class UserController extends Controller
 
     private function isLastAdminRoleChange(User $user, string $newRole): bool
     {
-        if ($user->role !== 'admin' || $newRole === 'admin') {
+        if ($user->role !== User::ROLE_ADMIN || $newRole === User::ROLE_ADMIN) {
             return false;
         }
 
-        return User::query()->where('role', 'admin')->count() <= 1;
+        return User::query()->where('role', User::ROLE_ADMIN)->count() <= 1;
     }
 
     private function isLastAdminDeletion(User $user): bool
     {
-        if ($user->role !== 'admin') {
+        if ($user->role !== User::ROLE_ADMIN) {
             return false;
         }
 
-        return User::query()->where('role', 'admin')->count() <= 1;
+        return User::query()->where('role', User::ROLE_ADMIN)->count() <= 1;
     }
 
     private function cleanString(?string $value): ?string

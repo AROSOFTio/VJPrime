@@ -18,7 +18,10 @@
             <select name="role" class="rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm">
                 <option value="">All Roles</option>
                 <option value="admin" @selected(($filters['role'] ?? '') === 'admin')>Admin</option>
-                <option value="user" @selected(($filters['role'] ?? '') === 'user')>User</option>
+                <option value="content_manager" @selected(($filters['role'] ?? '') === 'content_manager')>Content Manager</option>
+                <option value="contributor" @selected(($filters['role'] ?? '') === 'contributor')>Contributor</option>
+                <option value="finance_manager" @selected(($filters['role'] ?? '') === 'finance_manager')>Finance Manager</option>
+                <option value="user" @selected(($filters['role'] ?? '') === 'user')>Viewer / Customer</option>
             </select>
 
             <select name="subscription_status" class="rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm">
@@ -56,7 +59,7 @@
                             Phone: {{ $user->phone ?: '-' }}
                         </p>
                         <p class="mt-1 text-xs text-slate-300">
-                            <span class="rounded bg-white/10 px-1.5 py-0.5">{{ strtoupper($user->role) }}</span>
+                            <span class="rounded bg-white/10 px-1.5 py-0.5">{{ $user->roleLabel() }}</span>
                             <span class="ml-1 rounded bg-white/10 px-1.5 py-0.5">{{ strtoupper($user->subscription_status) }}</span>
                             @if ($user->subscription_expires_at)
                                 <span class="ml-1 text-slate-400">Expires: {{ $user->subscription_expires_at->format('Y-m-d H:i') }}</span>

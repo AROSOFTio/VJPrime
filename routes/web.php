@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\GenreController as AdminGenreController;
 use App\Http\Controllers\Admin\LanguageController as AdminLanguageController;
 use App\Http\Controllers\Admin\MovieController as AdminMovieController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VjController as AdminVjController;
 use App\Http\Controllers\BillingController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\OnlineUsersController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/browse', [BrowseController::class, 'index'])->name('browse');
+Route::get('/online-users-count', [OnlineUsersController::class, 'count'])->name('online-users.count');
 Route::get('/movies/{slug}', [MovieController::class, 'show'])->name('movies.show');
 
 Route::middleware(['auth', 'reset.quota'])->group(function () {
@@ -60,14 +63,48 @@ Route::get('/download/{movie}', [StreamController::class, 'download'])
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'can:admin'])
+    ->middleware(['auth', 'can:access-admin-panel'])
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
-        Route::resource('movies', AdminMovieController::class)->except('show');
-        Route::resource('users', AdminUserController::class)->except('show');
-        Route::resource('genres', AdminGenreController::class)->except('show');
-        Route::resource('languages', AdminLanguageController::class)->except('show');
-        Route::resource('vjs', AdminVjController::class)->except('show');
+
+        Route::get('/reports', [AdminReportController::class, 'index'])
+            ->name('reports.index')
+            ->middleware('can:view-reports');
+        Route::get('/reports/export', [AdminReportController::class, 'export'])
+            ->name('reports.export')
+            ->middleware('can:view-reports');
+
+        Route::resource('users', AdminUserController::class)
+            ->except('show')
+            ->middleware('can:manage-users');
+
+        Route::resource('movies', AdminMovieController::class)
+            ->except(['show', 'destroy'])
+            ->middleware('can:manage-content');
+        Route::delete('/movies/{movie}', [AdminMovieController::class, 'destroy'])
+            ->name('movies.destroy')
+            ->middleware('can:delete-content');
+
+        Route::resource('genres', AdminGenreController::class)
+            ->except(['show', 'destroy'])
+            ->middleware('can:manage-content');
+        Route::delete('/genres/{genre}', [AdminGenreController::class, 'destroy'])
+            ->name('genres.destroy')
+            ->middleware('can:delete-content');
+
+        Route::resource('languages', AdminLanguageController::class)
+            ->except(['show', 'destroy'])
+            ->middleware('can:manage-content');
+        Route::delete('/languages/{language}', [AdminLanguageController::class, 'destroy'])
+            ->name('languages.destroy')
+            ->middleware('can:delete-content');
+
+        Route::resource('vjs', AdminVjController::class)
+            ->except(['show', 'destroy'])
+            ->middleware('can:manage-content');
+        Route::delete('/vjs/{vj}', [AdminVjController::class, 'destroy'])
+            ->name('vjs.destroy')
+            ->middleware('can:delete-content');
     });
 
 require __DIR__.'/auth.php';

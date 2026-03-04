@@ -16,6 +16,24 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_USER = 'user';
+
+    public const ROLE_CONTENT_MANAGER = 'content_manager';
+
+    public const ROLE_CONTRIBUTOR = 'contributor';
+
+    public const ROLE_FINANCE_MANAGER = 'finance_manager';
+
+    public const ROLES = [
+        self::ROLE_ADMIN,
+        self::ROLE_USER,
+        self::ROLE_CONTENT_MANAGER,
+        self::ROLE_CONTRIBUTOR,
+        self::ROLE_FINANCE_MANAGER,
+    ];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -103,7 +121,58 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_CONTENT_MANAGER,
+            self::ROLE_CONTRIBUTOR,
+            self::ROLE_FINANCE_MANAGER,
+        ], true);
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function canManageContent(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_CONTENT_MANAGER,
+            self::ROLE_CONTRIBUTOR,
+        ], true);
+    }
+
+    public function canDeleteContent(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_CONTENT_MANAGER,
+        ], true);
+    }
+
+    public function canViewReports(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_FINANCE_MANAGER,
+        ], true);
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            self::ROLE_ADMIN => 'Admin',
+            self::ROLE_CONTENT_MANAGER => 'Content Manager',
+            self::ROLE_CONTRIBUTOR => 'Contributor',
+            self::ROLE_FINANCE_MANAGER => 'Finance Manager',
+            default => 'Viewer / Customer',
+        };
     }
 
     public function isPremium(): bool

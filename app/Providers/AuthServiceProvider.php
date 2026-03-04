@@ -19,5 +19,10 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
+        Gate::define('access-admin-panel', fn (User $user): bool => $user->canAccessAdminPanel());
+        Gate::define('manage-users', fn (User $user): bool => $user->canManageUsers());
+        Gate::define('manage-content', fn (User $user): bool => $user->canManageContent());
+        Gate::define('delete-content', fn (User $user): bool => $user->canDeleteContent());
+        Gate::define('view-reports', fn (User $user): bool => $user->canViewReports());
     }
 }

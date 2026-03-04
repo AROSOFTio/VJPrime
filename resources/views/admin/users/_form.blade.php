@@ -38,8 +38,11 @@
     <div>
         <label class="mb-1 block text-xs text-slate-300">Role *</label>
         <select name="role" required class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-            <option value="user" @selected(old('role', $user->role ?? 'user') === 'user')>User</option>
+            <option value="user" @selected(old('role', $user->role ?? 'user') === 'user')>Viewer / Customer</option>
             <option value="admin" @selected(old('role', $user->role ?? 'user') === 'admin')>Admin</option>
+            <option value="content_manager" @selected(old('role', $user->role ?? 'user') === 'content_manager')>Content Manager</option>
+            <option value="contributor" @selected(old('role', $user->role ?? 'user') === 'contributor')>Contributor</option>
+            <option value="finance_manager" @selected(old('role', $user->role ?? 'user') === 'finance_manager')>Finance Manager</option>
         </select>
     </div>
 
