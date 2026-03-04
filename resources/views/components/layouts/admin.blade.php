@@ -20,6 +20,7 @@
             <nav class="space-y-1 text-sm">
                 <a href="{{ route('admin.dashboard') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.dashboard') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">Dashboard</a>
                 <a href="{{ route('admin.movies.index') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.movies.*') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">Movies</a>
+                <a href="{{ route('admin.users.index') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.users.*') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">Users</a>
                 <a href="{{ route('admin.genres.index') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.genres.*') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">Genres</a>
                 <a href="{{ route('admin.languages.index') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.languages.*') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">Languages</a>
                 <a href="{{ route('admin.vjs.index') }}" class="block rounded-md px-3 py-2 {{ request()->routeIs('admin.vjs.*') ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">VJs</a>
@@ -29,6 +30,7 @@
                 <p class="mb-2 px-3 text-xs uppercase tracking-wide text-slate-500">Quick Add</p>
                 <div class="space-y-1 text-sm">
                     <a href="{{ route('admin.movies.create') }}" class="block rounded-md px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">Add Movie/Series</a>
+                    <a href="{{ route('admin.users.create') }}" class="block rounded-md px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">Add User</a>
                     <a href="{{ route('admin.genres.create') }}" class="block rounded-md px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">Add Genre</a>
                     <a href="{{ route('admin.languages.create') }}" class="block rounded-md px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">Add Language</a>
                     <a href="{{ route('admin.vjs.create') }}" class="block rounded-md px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">Add VJ</a>

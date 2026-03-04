@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\GenreController as AdminGenreController;
 use App\Http\Controllers\Admin\LanguageController as AdminLanguageController;
 use App\Http\Controllers\Admin\MovieController as AdminMovieController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VjController as AdminVjController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BrowseController;
@@ -63,6 +64,7 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::resource('movies', AdminMovieController::class)->except('show');
+        Route::resource('users', AdminUserController::class)->except('show');
         Route::resource('genres', AdminGenreController::class)->except('show');
         Route::resource('languages', AdminLanguageController::class)->except('show');
         Route::resource('vjs', AdminVjController::class)->except('show');
