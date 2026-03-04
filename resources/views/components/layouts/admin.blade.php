@@ -12,7 +12,9 @@
         <aside class="border-b border-white/10 bg-slate-900/80 p-4 backdrop-blur lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
             <div class="mb-6">
                 <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Admin Panel</p>
-                <a href="{{ route('admin.dashboard') }}" class="mt-2 block text-2xl font-semibold text-red-500">{{ config('app.name', 'VJPrime') }}</a>
+                <a href="{{ route('admin.dashboard') }}" class="mt-2 inline-flex items-center">
+                    <x-application-logo class="h-7 w-auto text-red-500 sm:h-8" />
+                </a>
             </div>
 
             <nav class="space-y-1 text-sm">

@@ -26,7 +26,9 @@
     <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur">
         <nav class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-6">
-                <a href="{{ route('home') }}" class="text-2xl font-semibold tracking-tight text-red-500">{{ config('app.name', 'VJPrime') }}</a>
+                <a href="{{ route('home') }}" class="inline-flex items-center">
+                    <x-application-logo class="h-7 w-auto text-red-500 sm:h-8" />
+                </a>
                 <a href="{{ route('home') }}" class="text-sm text-slate-200 hover:text-white">Home</a>
                 <a href="{{ route('browse') }}" class="text-sm text-slate-200 hover:text-white">Browse</a>
                 @auth
@@ -95,4 +97,3 @@
     </script>
 </body>
 </html>
-
