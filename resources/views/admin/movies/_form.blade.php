@@ -1,8 +1,9 @@
 @php
     $isEdit = isset($movie);
-    $asset = $movie->asset ?? null;
-    $selectedGenres = collect(old('genre_ids', $movie->genres->pluck('id')->all() ?? []))->map(fn ($id) => (int) $id)->all();
-    $publishedAt = old('published_at', isset($movie->published_at) ? $movie->published_at?->format('Y-m-d\TH:i') : null);
+    $asset = $isEdit ? ($movie->asset ?? null) : null;
+    $movieGenreIds = $isEdit ? $movie->genres->pluck('id')->all() : [];
+    $selectedGenres = collect(old('genre_ids', $movieGenreIds))->map(fn ($id) => (int) $id)->all();
+    $publishedAt = old('published_at', ($isEdit && isset($movie->published_at)) ? $movie->published_at?->format('Y-m-d\TH:i') : null);
 @endphp
 
 @if ($errors->any())
