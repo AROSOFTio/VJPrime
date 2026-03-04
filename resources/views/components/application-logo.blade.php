@@ -1,32 +1,31 @@
-<svg viewBox="0 0 280 72" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VJPrime logo" {{ $attributes }}>
-    <defs>
-        <linearGradient id="vjprime-mark-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f97316" />
-            <stop offset="45%" stop-color="#ef4444" />
-            <stop offset="100%" stop-color="#dc2626" />
-        </linearGradient>
-    </defs>
+@props(['variant' => 'red-black'])
 
-    <rect x="2" y="6" width="60" height="60" rx="16" fill="url(#vjprime-mark-gradient)" />
+@php
+    $palette = match ($variant) {
+        'red-green' => [
+            'left' => 'from-red-600 via-red-500 to-red-400',
+            'right' => 'from-emerald-500 via-emerald-400 to-emerald-300',
+            'dot' => 'bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.65)]',
+        ],
+        'green-black' => [
+            'left' => 'from-emerald-600 via-emerald-500 to-emerald-400',
+            'right' => 'from-zinc-900 via-zinc-700 to-zinc-500 dark:from-zinc-100 dark:via-zinc-200 dark:to-zinc-300',
+            'dot' => 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.65)]',
+        ],
+        default => [
+            'left' => 'from-red-600 via-red-500 to-red-400',
+            'right' => 'from-zinc-900 via-zinc-700 to-zinc-500 dark:from-zinc-100 dark:via-zinc-200 dark:to-zinc-300',
+            'dot' => 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.65)]',
+        ],
+    };
+@endphp
 
-    <circle cx="18" cy="22" r="4" fill="white" fill-opacity="0.95" />
-    <circle cx="30" cy="22" r="4" fill="white" fill-opacity="0.95" />
-    <circle cx="44" cy="22" r="4" fill="white" fill-opacity="0.95" />
-    <circle cx="18" cy="50" r="4" fill="white" fill-opacity="0.95" />
-    <circle cx="30" cy="50" r="4" fill="white" fill-opacity="0.95" />
-    <circle cx="44" cy="50" r="4" fill="white" fill-opacity="0.95" />
-
-    <path d="M24 35L41 27V45L24 37V35Z" fill="white" />
-
-    <text
-        x="78"
-        y="46"
-        fill="currentColor"
-        font-family="Figtree, ui-sans-serif, system-ui"
-        font-size="34"
-        font-weight="700"
-        letter-spacing="0.3"
-    >
-        VJPrime
-    </text>
-</svg>
+<span
+    role="img"
+    aria-label="VJPrime logo"
+    {{ $attributes->merge(['class' => 'inline-flex items-center gap-1 align-middle font-black uppercase tracking-[0.14em] leading-none']) }}
+>
+    <span class="bg-gradient-to-r {{ $palette['left'] }} bg-clip-text text-transparent">VJ</span>
+    <span class="bg-gradient-to-r {{ $palette['right'] }} bg-clip-text text-transparent">Prime</span>
+    <span class="h-1.5 w-1.5 rounded-full {{ $palette['dot'] }}"></span>
+</span>

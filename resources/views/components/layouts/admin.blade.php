@@ -13,7 +13,7 @@
             <div class="mb-6">
                 <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Admin Panel</p>
                 <a href="{{ route('admin.dashboard') }}" class="mt-2 inline-flex items-center">
-                    <x-application-logo class="h-7 w-auto text-red-500 sm:h-8" />
+                    <x-application-logo variant="red-green" class="text-xl sm:text-2xl" />
                 </a>
             </div>
 

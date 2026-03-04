@@ -27,7 +27,7 @@
         <nav class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-6">
                 <a href="{{ route('home') }}" class="inline-flex items-center">
-                    <x-application-logo class="h-7 w-auto text-red-500 sm:h-8" />
+                    <x-application-logo variant="red-green" class="text-xl sm:text-2xl" />
                 </a>
                 <a href="{{ route('home') }}" class="text-sm text-slate-200 hover:text-white">Home</a>
                 <a href="{{ route('browse') }}" class="text-sm text-slate-200 hover:text-white">Browse</a>
