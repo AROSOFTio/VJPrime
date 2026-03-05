@@ -9,6 +9,7 @@ use App\Services\DownloadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -88,7 +89,7 @@ class StreamController extends Controller
         $disk = config('filesystems.default', 'local');
         abort_unless(Storage::disk($disk)->exists($path), 404, 'File not found.');
 
-        return Storage::disk($disk)->download($path, basename($path));
+        return Storage::disk($disk)->download($path, $this->downloadFilename($movie, $path));
     }
 
     private function serveStreamAsset(Request $request, Movie $movie, string $path): Response
@@ -334,5 +335,30 @@ class StreamController extends Controller
         $normalized = $this->normalizePath($decoded);
 
         return $normalized !== '' ? $normalized : null;
+    }
+
+    private function downloadFilename(Movie $movie, string $path): string
+    {
+        $pathPart = parse_url($path, PHP_URL_PATH);
+        $candidatePath = is_string($pathPart) && $pathPart !== '' ? $pathPart : $path;
+
+        $extension = strtolower((string) pathinfo($candidatePath, PATHINFO_EXTENSION));
+        if ($extension === '') {
+            $extension = 'mp4';
+        }
+
+        $rawBase = (string) pathinfo($candidatePath, PATHINFO_FILENAME);
+        $rawBase = preg_replace('/[-_]\d{8,}$/', '', $rawBase) ?: $rawBase;
+        $safeBase = Str::slug($rawBase, '-');
+
+        if ($safeBase === '' || preg_match('/^(source|file)$/i', $safeBase) === 1) {
+            $safeBase = Str::slug((string) $movie->title, '-');
+        }
+
+        if ($safeBase === '') {
+            $safeBase = 'video';
+        }
+
+        return "{$safeBase}-VJPrime.{$extension}";
     }
 }

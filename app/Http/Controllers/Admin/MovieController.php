@@ -308,8 +308,13 @@ class MovieController extends Controller
         }
 
         if ($request->file('download_file_upload') instanceof UploadedFile) {
-            $payload['download_file_path'] = $request->file('download_file_upload')->store("movies/downloads/{$movie->id}", config('filesystems.default'));
-            $payload['size_bytes'] = $request->file('download_file_upload')->getSize();
+            $downloadFile = $request->file('download_file_upload');
+            $payload['download_file_path'] = $downloadFile->storeAs(
+                "movies/downloads/{$movie->id}",
+                $this->buildStoredUploadFilename($downloadFile),
+                config('filesystems.default')
+            );
+            $payload['size_bytes'] = $downloadFile->getSize();
         }
 
         $existingHlsPath = $movie->asset?->hls_master_path;
@@ -406,6 +411,19 @@ class MovieController extends Controller
         }
 
         return ltrim(substr($absolutePath, strlen($rootPath)), '/');
+    }
+
+    private function buildStoredUploadFilename(UploadedFile $file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $baseName = pathinfo((string) $file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = Str::slug($baseName, '-');
+
+        if ($safeBase === '') {
+            $safeBase = 'file';
+        }
+
+        return "{$safeBase}-".now()->format('YmdHis').".{$extension}";
     }
 
     private function cleanString(?string $value): ?string

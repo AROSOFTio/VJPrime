@@ -1,5 +1,5 @@
 <x-layouts.stream :title="$movie->title . ' - Player'" :wallpaper-posters="[$movie->backdrop_url, $movie->poster_url]">
-    <section class="mx-auto max-w-4xl space-y-4">
+    <section class="mx-auto max-w-3xl space-y-4">
         <div>
             <p class="text-xs uppercase tracking-[0.2em] text-red-400">{{ $movie->language->name }} &middot; {{ $movie->vj->name }}</p>
             <h1 class="text-2xl font-semibold">{{ $movie->title }}</h1>
@@ -12,7 +12,7 @@
                 playsinline
                 preload="metadata"
                 poster="{{ $movie->backdrop_url ?: $movie->poster_url }}"
-                class="aspect-video w-full bg-black"
+                class="aspect-video w-full bg-black object-contain md:max-h-[58vh]"
             ></video>
 
             <div id="playback-blocked" class="absolute inset-0 hidden items-center justify-center bg-slate-950/90 p-6 text-center">
@@ -134,7 +134,8 @@
                     options: [0.5, 0.75, 1, 1.25, 1.5, 2],
                 },
                 autoplay: true,
-                muted: true,
+                muted: false,
+                volume: 0.4,
                 keyboard: { focused: true, global: true },
                 tooltips: { controls: true, seek: true },
                 seekTime: 10,
@@ -153,6 +154,8 @@
             };
 
             playerElement.setAttribute('controls', 'controls');
+            setInitialVolume(0.4);
+            attachFirstInteractionAudio();
             playerElement.addEventListener('play', () => {
                 if (!isBlocked) {
                     setStatus('');
@@ -384,11 +387,18 @@
             }
 
             function tryPlayImmediately() {
-                playerElement.muted = true;
+                setInitialVolume(0.4);
+                playerElement.muted = false;
                 const promise = playerElement.play();
                 if (promise && typeof promise.catch === 'function') {
-                    promise.catch(() => {
-                        setStatus('Tap play if autoplay is blocked by browser policy.');
+                    promise.catch(async () => {
+                        try {
+                            playerElement.muted = true;
+                            await playerElement.play();
+                            setStatus('Autoplay started muted by browser. Tap player to hear sound.');
+                        } catch (_error) {
+                            setStatus('Tap play to start. Default volume is 40%.');
+                        }
                     });
                 }
             }
@@ -541,8 +551,8 @@
                             return;
                         }
 
-                        setActionStatus('Download link ready.');
-                        window.open(payload.download_url, '_blank', 'noopener,noreferrer');
+                        setActionStatus('Download starting...');
+                        window.location.assign(payload.download_url);
                     } catch (_error) {
                         setActionStatus('Failed to create download link. Check internet and try again.');
                     } finally {
@@ -619,6 +629,29 @@
                 const success = document.execCommand('copy');
                 document.body.removeChild(temp);
                 return success;
+            }
+
+            function setInitialVolume(volume) {
+                const safeVolume = Math.min(1, Math.max(0, Number(volume) || 0.4));
+                playerElement.volume = safeVolume;
+            }
+
+            function attachFirstInteractionAudio() {
+                const enableAudio = () => {
+                    playerElement.muted = false;
+                    setInitialVolume(0.4);
+                    cleanup();
+                };
+
+                const cleanup = () => {
+                    playerElement.removeEventListener('pointerdown', enableAudio);
+                    playerElement.removeEventListener('touchstart', enableAudio);
+                    document.removeEventListener('keydown', enableAudio);
+                };
+
+                playerElement.addEventListener('pointerdown', enableAudio, { once: true });
+                playerElement.addEventListener('touchstart', enableAudio, { once: true, passive: true });
+                document.addEventListener('keydown', enableAudio, { once: true });
             }
         })();
     </script>

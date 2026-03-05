@@ -6,6 +6,7 @@ use App\Models\Movie;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Process\Process;
 use Throwable;
@@ -25,10 +26,16 @@ class VideoIngestService
 
         $timestamp = now()->format('YmdHis');
         $extension = strtolower($sourceVideo->getClientOriginalExtension() ?: $sourceVideo->extension() ?: 'mp4');
+        $originalBase = pathinfo((string) $sourceVideo->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeBase = Str::slug($originalBase, '-');
+
+        if ($safeBase === '') {
+            $safeBase = 'video';
+        }
 
         $downloadRelativePath = $sourceVideo->storeAs(
             "movies/downloads/{$movie->id}",
-            "source-{$timestamp}.{$extension}",
+            "{$safeBase}-{$timestamp}.{$extension}",
             $diskName
         );
 
@@ -330,4 +337,3 @@ class VideoIngestService
         return (string) $process->getOutput();
     }
 }
-
