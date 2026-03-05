@@ -15,7 +15,30 @@
                 class="aspect-video w-full bg-black object-contain md:max-h-[58vh]"
             ></video>
 
-            <div id="playback-blocked" class="absolute inset-0 hidden items-center justify-center bg-slate-950/90 p-6 text-center">
+            <div class="pointer-events-auto absolute right-3 top-3 z-10 flex items-center gap-2 rounded-md bg-slate-900/80 px-2 py-1 backdrop-blur">
+                <label for="quality-select" class="text-[10px] font-semibold uppercase tracking-wide text-slate-200">Quality</label>
+                <select
+                    id="quality-select"
+                    class="rounded border border-white/20 bg-slate-950 px-1.5 py-1 text-xs text-slate-100 focus:border-red-500 focus:outline-none"
+                >
+                    <option value="auto">Auto</option>
+                </select>
+
+                <label for="speed-select" class="text-[10px] font-semibold uppercase tracking-wide text-slate-200">Speed</label>
+                <select
+                    id="speed-select"
+                    class="rounded border border-white/20 bg-slate-950 px-1.5 py-1 text-xs text-slate-100 focus:border-red-500 focus:outline-none"
+                >
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+
+            <div id="playback-blocked" class="absolute inset-0 z-20 hidden items-center justify-center bg-slate-950/90 p-6 text-center">
                 <div>
                     <p data-blocked-message class="text-lg font-semibold text-white">Daily free limit reached</p>
                     <p class="mt-2 text-sm text-slate-300">You have used your 30 free minutes for this 24-hour window.</p>
@@ -84,6 +107,8 @@
             const shareToggle = document.getElementById('share-toggle');
             const shareMenu = document.getElementById('share-menu');
             const copyShareButton = document.querySelector('[data-share-copy]');
+            const qualitySelect = document.getElementById('quality-select');
+            const speedSelect = document.getElementById('speed-select');
             const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
             const movieId = {{ $movie->id }};
             const downloadEndpoint = @json(route('downloads.link', $movie));
@@ -112,6 +137,7 @@
             playerElement.setAttribute('controls', 'controls');
             setInitialVolume(0.4);
             attachFirstInteractionAudio();
+            initPlaybackSelectors();
             playerElement.addEventListener('play', () => {
                 if (!isBlocked) {
                     setStatus('');
@@ -211,6 +237,7 @@
             function initHlsPlayer(hlsUrl, fallbackUrl) {
                 destroyHls();
                 enableNativeControls();
+                setQualitySelectorState('auto', true);
 
                 if (window.Hls && window.Hls.isSupported()) {
                     hlsInstance = new window.Hls({
@@ -228,6 +255,7 @@
                     hlsInstance.attachMedia(playerElement);
 
                     hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, () => {
+                        applyHlsQualityOptions();
                         tryPlayImmediately();
                         setStatus('Adaptive streaming ready.');
                     });
@@ -261,6 +289,7 @@
 
             function initNativeHlsPlayer() {
                 enableNativeControls();
+                setQualitySelectorState('auto', true);
 
                 tryPlayImmediately();
                 setStatus('Native HLS playback active.');
@@ -274,6 +303,7 @@
 
                 destroyHls();
                 enableNativeControls();
+                setQualitySelectorState('source', true);
 
                 playerElement.src = sourceUrl;
                 tryPlayImmediately();
@@ -311,6 +341,83 @@
                 if (message) {
                     setStatus(message);
                 }
+            }
+
+            function initPlaybackSelectors() {
+                if (speedSelect) {
+                    speedSelect.addEventListener('change', () => {
+                        const rate = Number(speedSelect.value || 1);
+                        playerElement.playbackRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+                    });
+                    playerElement.playbackRate = 1;
+                }
+
+                if (qualitySelect) {
+                    qualitySelect.addEventListener('change', () => {
+                        if (!hlsInstance) {
+                            return;
+                        }
+
+                        const selected = String(qualitySelect.value || 'auto');
+                        if (selected === 'auto') {
+                            hlsInstance.currentLevel = -1;
+                            return;
+                        }
+
+                        const targetHeight = Number(selected);
+                        if (!Number.isFinite(targetHeight) || targetHeight <= 0) {
+                            return;
+                        }
+
+                        const levelIndex = hlsInstance.levels.findIndex(
+                            (level) => Number(level.height || 0) === targetHeight
+                        );
+                        if (levelIndex >= 0) {
+                            hlsInstance.currentLevel = levelIndex;
+                        }
+                    });
+                }
+            }
+
+            function applyHlsQualityOptions() {
+                if (!qualitySelect || !hlsInstance) {
+                    return;
+                }
+
+                const levels = Array.from(
+                    new Set(
+                        hlsInstance.levels
+                            .map((level) => Number(level.height || 0))
+                            .filter((height) => height > 0)
+                    )
+                ).sort((a, b) => a - b);
+
+                qualitySelect.innerHTML = '';
+                qualitySelect.append(new Option('Auto', 'auto'));
+
+                levels.forEach((height) => {
+                    qualitySelect.append(new Option(`${height}p`, String(height)));
+                });
+
+                qualitySelect.value = 'auto';
+                qualitySelect.disabled = levels.length === 0;
+            }
+
+            function setQualitySelectorState(value, disabled) {
+                if (!qualitySelect) {
+                    return;
+                }
+
+                qualitySelect.innerHTML = '';
+
+                if (value === 'source') {
+                    qualitySelect.append(new Option('Source', 'source'));
+                } else {
+                    qualitySelect.append(new Option('Auto', 'auto'));
+                }
+
+                qualitySelect.value = value;
+                qualitySelect.disabled = disabled;
             }
 
             function startHeartbeat() {
