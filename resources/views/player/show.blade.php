@@ -71,24 +71,7 @@
         </div>
     </section>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
-    <style>
-        .plyr--video .plyr__control--overlaid {
-            display: none !important;
-        }
-
-        .plyr--video .plyr__controls {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-        }
-
-        .plyr--video.plyr--hide-controls .plyr__controls {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
-    </style>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
     <script>
         (() => {
             const playerElement = document.getElementById('player');
@@ -110,7 +93,6 @@
             let viewId = null;
             let isBlocked = false;
             let hlsInstance = null;
-            let plyrInstance = null;
             let lastHeartbeatPosition = 0;
             let heartbeatTimer = null;
             let streamUrl = '';
@@ -125,47 +107,6 @@
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': csrf,
                 'X-Requested-With': 'XMLHttpRequest',
-            };
-
-            const basePlyrOptions = {
-                controls: [
-                    'rewind',
-                    'play',
-                    'fast-forward',
-                    'progress',
-                    'current-time',
-                    'duration',
-                    'mute',
-                    'volume',
-                    'settings',
-                    'pip',
-                    'airplay',
-                    'fullscreen',
-                ],
-                settings: ['quality', 'speed'],
-                speed: {
-                    selected: 1,
-                    options: [0.5, 0.75, 1, 1.25, 1.5, 2],
-                },
-                autoplay: true,
-                muted: false,
-                volume: 0.4,
-                hideControls: false,
-                keyboard: { focused: true, global: true },
-                tooltips: { controls: true, seek: true },
-                seekTime: 10,
-            };
-
-            const createPlyr = (options) => {
-                if (typeof window.Plyr === 'undefined') {
-                    return null;
-                }
-
-                try {
-                    return new window.Plyr(playerElement, options);
-                } catch (_error) {
-                    return null;
-                }
             };
 
             playerElement.setAttribute('controls', 'controls');
@@ -269,7 +210,7 @@
 
             function initHlsPlayer(hlsUrl, fallbackUrl) {
                 destroyHls();
-                destroyPlyr();
+                enableNativeControls();
 
                 if (window.Hls && window.Hls.isSupported()) {
                     hlsInstance = new window.Hls({
@@ -287,40 +228,8 @@
                     hlsInstance.attachMedia(playerElement);
 
                     hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, () => {
-                        const qualityHeights = Array.from(new Set(
-                            hlsInstance.levels
-                                .map((level) => Number(level.height || 0))
-                                .filter((height) => height > 0)
-                        )).sort((a, b) => a - b);
-
-                        const plyrOptions = qualityHeights.length > 0
-                            ? {
-                                ...basePlyrOptions,
-                                quality: {
-                                    default: 0,
-                                    options: [0, ...qualityHeights],
-                                    forced: true,
-                                    onChange: updateHlsQuality,
-                                },
-                                i18n: {
-                                    qualityLabel: {
-                                        0: 'Auto',
-                                    },
-                                },
-                            }
-                            : {
-                                ...basePlyrOptions,
-                                quality: undefined,
-                                settings: ['speed'],
-                            };
-
-                        plyrInstance = createPlyr(plyrOptions);
-                        if (!plyrInstance) {
-                            enableNativeControls('Using standard browser controls.');
-                        }
-
                         tryPlayImmediately();
-                        setStatus('Adaptive streaming ready. Use settings for Auto/360/480/720/1080.');
+                        setStatus('Adaptive streaming ready.');
                     });
 
                     hlsInstance.on(window.Hls.Events.ERROR, (_event, data) => {
@@ -351,17 +260,7 @@
             }
 
             function initNativeHlsPlayer() {
-                destroyPlyr();
-
-                plyrInstance = createPlyr({
-                    ...basePlyrOptions,
-                    quality: undefined,
-                    settings: ['speed'],
-                });
-
-                if (!plyrInstance) {
-                    enableNativeControls('Using standard browser controls.');
-                }
+                enableNativeControls();
 
                 tryPlayImmediately();
                 setStatus('Native HLS playback active.');
@@ -374,37 +273,11 @@
                 }
 
                 destroyHls();
-                destroyPlyr();
+                enableNativeControls();
 
                 playerElement.src = sourceUrl;
-                plyrInstance = createPlyr({
-                    ...basePlyrOptions,
-                    quality: undefined,
-                    settings: ['speed'],
-                });
-
-                if (!plyrInstance) {
-                    enableNativeControls('Using standard browser controls.');
-                }
-
                 tryPlayImmediately();
                 setStatus(message);
-            }
-
-            function updateHlsQuality(newQuality) {
-                if (!hlsInstance) {
-                    return;
-                }
-
-                if (Number(newQuality) === 0) {
-                    hlsInstance.currentLevel = -1;
-                    return;
-                }
-
-                const levelIndex = hlsInstance.levels.findIndex((level) => Number(level.height || 0) === Number(newQuality));
-                if (levelIndex >= 0) {
-                    hlsInstance.currentLevel = levelIndex;
-                }
             }
 
             function tryPlayImmediately() {
@@ -433,17 +306,7 @@
                 hlsInstance = null;
             }
 
-            function destroyPlyr() {
-                if (!plyrInstance) {
-                    return;
-                }
-
-                plyrInstance.destroy();
-                plyrInstance = null;
-            }
-
             function enableNativeControls(message = '') {
-                destroyPlyr();
                 playerElement.setAttribute('controls', 'controls');
                 if (message) {
                     setStatus(message);
