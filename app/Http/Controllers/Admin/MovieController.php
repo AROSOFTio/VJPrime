@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 use ZipArchive;
 
 class MovieController extends Controller
@@ -279,11 +280,21 @@ class MovieController extends Controller
                 @set_time_limit(0);
             }
 
-            $payload = array_merge($payload, $this->videoIngestService->ingest(
-                $movie,
-                $request->file('source_video_upload'),
-                $validated['renditions_json'] ?? []
-            ));
+            try {
+                $payload = array_merge($payload, $this->videoIngestService->ingest(
+                    $movie,
+                    $request->file('source_video_upload'),
+                    $validated['renditions_json'] ?? []
+                ));
+            } catch (ValidationException $exception) {
+                throw $exception;
+            } catch (Throwable $exception) {
+                report($exception);
+
+                throw ValidationException::withMessages([
+                    'source_video_upload' => 'Video processing failed on server. Check FFmpeg installation and storage permissions.',
+                ]);
+            }
         } elseif ($request->file('hls_package_upload') instanceof UploadedFile) {
             $payload['hls_master_path'] = $this->storeHlsPackageUpload($request->file('hls_package_upload'), $movie);
         } elseif ($request->file('hls_master_upload') instanceof UploadedFile) {

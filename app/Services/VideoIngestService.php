@@ -121,7 +121,7 @@ class VideoIngestService
             $command[] = 'libx264';
             $command[] = "-profile:v:{$index}";
             $command[] = 'main';
-            $command[] = "-crf:{$index}";
+            $command[] = "-crf:v:{$index}";
             $command[] = '21';
             $command[] = "-b:v:{$index}";
             $command[] = "{$bitrate}k";
