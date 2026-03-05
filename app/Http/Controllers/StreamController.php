@@ -33,6 +33,20 @@ class StreamController extends Controller
         return $this->serveStreamAsset($request, $movie, $path);
     }
 
+    public function source(Request $request, Movie $movie): RedirectResponse|Response
+    {
+        abort_unless($request->hasValidSignature(), 401);
+
+        $path = $movie->asset?->download_file_path ?: $movie->asset?->hls_master_path;
+        abort_unless($path, 404, 'No source stream found.');
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return redirect()->away($path);
+        }
+
+        return $this->serveStreamAsset($request, $movie, $path);
+    }
+
     public function asset(Request $request, Movie $movie, string $encodedPath): Response
     {
         abort_unless($request->hasValidSignature(), 401);

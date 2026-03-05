@@ -39,9 +39,19 @@ class PlaybackController extends Controller
 
         $deviceHash = $this->deviceFingerprintService->fromRequest($request);
         $view = $this->playbackService->start($user, $movie, $deviceHash, $request->ip());
+        $expiresAt = now()->addMinutes((int) config('streaming.signed_playlist_minutes', 10));
         $playlistUrl = URL::temporarySignedRoute(
             'stream.playlist',
-            now()->addMinutes((int) config('streaming.signed_playlist_minutes', 10)),
+            $expiresAt,
+            [
+                'movie' => $movie->id,
+                'user' => $user->id,
+                'device' => $deviceHash,
+            ]
+        );
+        $sourceUrl = URL::temporarySignedRoute(
+            'stream.source',
+            $expiresAt,
             [
                 'movie' => $movie->id,
                 'user' => $user->id,
@@ -52,6 +62,7 @@ class PlaybackController extends Controller
         return response()->json([
             'view_id' => $view->id,
             'hls_url' => $playlistUrl,
+            'source_url' => $sourceUrl,
             'stream_type' => $this->streamType($movie->asset?->hls_master_path),
             'remaining_seconds' => $remaining,
             'quota_limit_seconds' => (int) config('streaming.free.daily_seconds', 1800),
