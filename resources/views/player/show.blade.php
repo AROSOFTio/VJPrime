@@ -76,6 +76,16 @@
         .plyr--video .plyr__control--overlaid {
             display: none !important;
         }
+
+        .plyr--video .plyr__controls {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+
+        .plyr--video.plyr--hide-controls .plyr__controls {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
@@ -140,6 +150,7 @@
                 autoplay: true,
                 muted: false,
                 volume: 0.4,
+                hideControls: false,
                 keyboard: { focused: true, global: true },
                 tooltips: { controls: true, seek: true },
                 seekTime: 10,
