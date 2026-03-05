@@ -187,7 +187,7 @@
                 if ((startData.stream_type || 'hls') === 'hls') {
                     initHlsPlayer(primaryUrl, sourceFallbackUrl);
                 } else {
-                    initDirectPlayer(primaryUrl, 'Playing source stream.');
+                    initDirectPlayer(primaryUrl, 'Source-only stream. Adaptive qualities are not available for this title yet.');
                 }
 
                 startHeartbeat();
@@ -411,7 +411,7 @@
                 qualitySelect.innerHTML = '';
 
                 if (value === 'source') {
-                    qualitySelect.append(new Option('Source', 'source'));
+                    qualitySelect.append(new Option('Source only', 'source'));
                 } else {
                     qualitySelect.append(new Option('Auto', 'auto'));
                 }

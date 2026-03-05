@@ -25,7 +25,7 @@ return [
         'ffprobe_binary' => env('FFPROBE_BINARY', 'ffprobe'),
         'default_heights' => array_values(array_filter(array_map(
             fn ($value) => (int) trim((string) $value),
-            explode(',', (string) env('STREAM_DEFAULT_RENDITIONS', '360,480,720,1080'))
+            explode(',', (string) env('STREAM_DEFAULT_RENDITIONS', '240,360,480,720,1080'))
         ))),
         'hls_segment_seconds' => (int) env('STREAM_HLS_SEGMENT_SECONDS', 4),
         'preview_seconds' => (int) env('STREAM_PREVIEW_SECONDS', 20),

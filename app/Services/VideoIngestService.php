@@ -45,7 +45,10 @@ class VideoIngestService
             ]);
         }
 
-        $fallbackPayload = $this->sourceFallbackPayload($downloadRelativePath, $sourceVideo);
+        $fallbackPayload = $this->sourceFallbackPayloadFromSize(
+            $downloadRelativePath,
+            (int) ($sourceVideo->getSize() ?? 0)
+        );
         $autoprocessEnabled = (bool) config('streaming.autoprocess.enabled', true);
 
         if (! $autoprocessEnabled) {
@@ -124,15 +127,126 @@ class VideoIngestService
         }
     }
 
-    private function sourceFallbackPayload(string $downloadRelativePath, UploadedFile $sourceVideo): array
+    public function ingestFromStoredSource(
+        Movie $movie,
+        string $sourceRelativePath,
+        array $requestedRenditions = [],
+        bool $allowFallbackToSource = false
+    ): array {
+        $diskName = (string) config('filesystems.default', 'local');
+        $diskDriver = (string) config("filesystems.disks.{$diskName}.driver", 'local');
+        $autoprocessEnabled = (bool) config('streaming.autoprocess.enabled', true);
+        $sourceSize = $this->storedFileSize($diskName, $sourceRelativePath);
+        $fallbackPayload = $this->sourceFallbackPayloadFromSize($sourceRelativePath, $sourceSize);
+
+        if (! $autoprocessEnabled) {
+            if ($allowFallbackToSource) {
+                return $fallbackPayload;
+            }
+
+            throw ValidationException::withMessages([
+                'source_video_upload' => 'Automatic video processing is disabled on this server.',
+            ]);
+        }
+
+        if ($diskDriver !== 'local') {
+            if ($allowFallbackToSource) {
+                return $fallbackPayload;
+            }
+
+            throw ValidationException::withMessages([
+                'source_video_upload' => 'Automatic video processing requires FILESYSTEM_DISK to use a local driver.',
+            ]);
+        }
+
+        if (! class_exists(Process::class)) {
+            if ($allowFallbackToSource) {
+                return $fallbackPayload;
+            }
+
+            throw ValidationException::withMessages([
+                'source_video_upload' => 'Server dependency missing: symfony/process.',
+            ]);
+        }
+
+        if (! Storage::disk($diskName)->exists($sourceRelativePath)) {
+            throw ValidationException::withMessages([
+                'source_video_upload' => 'Stored source video file not found on disk.',
+            ]);
+        }
+
+        try {
+            $this->assertBinaryAvailable($this->ffmpegBinary(), 'FFmpeg');
+            $this->assertBinaryAvailable($this->ffprobeBinary(), 'FFprobe');
+
+            $sourceAbsolutePath = Storage::disk($diskName)->path($sourceRelativePath);
+            $videoMeta = $this->probeVideo($sourceAbsolutePath);
+
+            $timestamp = now()->format('YmdHis');
+            $hlsRelativeDir = "movies/streams/{$movie->id}/auto-{$timestamp}/hls";
+            $hlsAbsoluteDir = Storage::disk($diskName)->path($hlsRelativeDir);
+            File::ensureDirectoryExists($hlsAbsoluteDir);
+
+            $renditions = $this->resolveRenditions($requestedRenditions, (int) ($videoMeta['height'] ?? 1080));
+            $this->generateHls($sourceAbsolutePath, $hlsAbsoluteDir, $renditions, (bool) ($videoMeta['has_audio'] ?? true));
+
+            $previewRelativePath = "movies/previews/{$movie->id}/auto-{$timestamp}.mp4";
+            $previewAbsolutePath = Storage::disk('public')->path($previewRelativePath);
+            File::ensureDirectoryExists(dirname($previewAbsolutePath));
+
+            $duration = (float) ($videoMeta['duration'] ?? 0);
+            $previewSeconds = max(8, (int) config('streaming.autoprocess.preview_seconds', 20));
+            $startSecond = $duration > ($previewSeconds + 10)
+                ? (int) floor(max(0, $duration * 0.2))
+                : 0;
+
+            $this->generatePreviewClip($sourceAbsolutePath, $previewAbsolutePath, $startSecond, $previewSeconds);
+
+            return [
+                'hls_master_path' => "{$hlsRelativeDir}/master.m3u8",
+                'preview_clip_path' => Storage::disk('public')->url($previewRelativePath),
+                'download_file_path' => $sourceRelativePath,
+                'renditions_json' => array_merge(['auto'], array_map(fn (int $h) => "{$h}p", $renditions)),
+                'size_bytes' => $sourceSize,
+            ];
+        } catch (ValidationException $exception) {
+            if ($allowFallbackToSource) {
+                report($exception);
+
+                return $fallbackPayload;
+            }
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            if ($allowFallbackToSource) {
+                report($exception);
+
+                return $fallbackPayload;
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function sourceFallbackPayloadFromSize(string $downloadRelativePath, int $sizeBytes): array
     {
         return [
             'hls_master_path' => $downloadRelativePath,
             'preview_clip_path' => null,
             'download_file_path' => $downloadRelativePath,
             'renditions_json' => ['auto', 'source'],
-            'size_bytes' => (int) ($sourceVideo->getSize() ?? 0),
+            'size_bytes' => max(0, $sizeBytes),
         ];
+    }
+
+    private function storedFileSize(string $diskName, string $path): int
+    {
+        try {
+            $size = Storage::disk($diskName)->size($path);
+            return is_numeric($size) ? max(0, (int) $size) : 0;
+        } catch (Throwable) {
+            return 0;
+        }
     }
 
     private function generateHls(string $sourcePath, string $outputDir, array $renditions, bool $hasAudio): void

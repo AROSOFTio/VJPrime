@@ -193,9 +193,9 @@
                 <label class="mb-1 block text-xs text-slate-300">Renditions (optional)</label>
                 @php
                     $existingRenditions = is_array($asset->renditions_json ?? null) ? $asset->renditions_json : [];
-                    $defaultRenditions = ! empty($existingRenditions) ? $existingRenditions : ['auto', '360p', '480p', '720p', '1080p'];
+                    $defaultRenditions = ! empty($existingRenditions) ? $existingRenditions : ['auto', '240p', '360p', '480p', '720p', '1080p'];
                 @endphp
-                <input type="text" name="renditions_json" value="{{ old('renditions_json', implode(',', $defaultRenditions)) }}" placeholder="auto,360p,480p,720p,1080p" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <input type="text" name="renditions_json" value="{{ old('renditions_json', implode(',', $defaultRenditions)) }}" placeholder="auto,240p,360p,480p,720p,1080p" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
             </div>
         </div>
 
