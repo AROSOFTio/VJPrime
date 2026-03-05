@@ -44,6 +44,7 @@
             const blocked = document.getElementById('playback-blocked');
             const remainingEl = document.getElementById('remaining-seconds');
             const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+            const qualityWrap = qualitySelect?.closest('div');
 
             let viewId = null;
             let isBlocked = false;
@@ -79,13 +80,13 @@
                 remainingEl.textContent = startData.remaining_seconds;
             }
 
-            initPlayer(startData.hls_url);
+            initPlayer(startData.hls_url, startData.stream_type || 'hls');
             startHeartbeat();
             window.addEventListener('beforeunload', () => sendStop(false));
             player.addEventListener('ended', () => sendStop(true));
 
-            function initPlayer(sourceUrl) {
-                if (window.Hls && window.Hls.isSupported()) {
+            function initPlayer(sourceUrl, streamType) {
+                if (streamType === 'hls' && window.Hls && window.Hls.isSupported()) {
                     hlsInstance = new Hls();
                     hlsInstance.loadSource(sourceUrl);
                     hlsInstance.attachMedia(player);
@@ -94,12 +95,28 @@
                         player.play().catch(() => {});
                         populateQualities();
                     });
-                } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+
+                    hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
+                        if (! data?.fatal) {
+                            return;
+                        }
+
+                        hlsInstance?.destroy();
+                        hlsInstance = null;
+                        fallbackToDirect(sourceUrl);
+                    });
+                } else if (streamType === 'hls' && player.canPlayType('application/vnd.apple.mpegurl')) {
                     player.src = sourceUrl;
                     player.addEventListener('loadedmetadata', () => player.play().catch(() => {}));
                 } else {
-                    alert('HLS playback is not supported in this browser.');
+                    fallbackToDirect(sourceUrl);
                 }
+            }
+
+            function fallbackToDirect(sourceUrl) {
+                qualityWrap?.classList.add('hidden');
+                player.src = sourceUrl;
+                player.addEventListener('loadedmetadata', () => player.play().catch(() => {}), { once: true });
             }
 
             function populateQualities() {

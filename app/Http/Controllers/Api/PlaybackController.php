@@ -52,6 +52,7 @@ class PlaybackController extends Controller
         return response()->json([
             'view_id' => $view->id,
             'hls_url' => $playlistUrl,
+            'stream_type' => $this->streamType($movie->asset?->hls_master_path),
             'remaining_seconds' => $remaining,
             'quota_limit_seconds' => (int) config('streaming.free.daily_seconds', 1800),
             'is_premium' => $user->isPremium(),
@@ -127,5 +128,18 @@ class PlaybackController extends Controller
             'message' => 'Playback stopped',
             'view_id' => $view?->id,
         ]);
+    }
+
+    private function streamType(?string $path): string
+    {
+        if (! is_string($path) || $path === '') {
+            return 'hls';
+        }
+
+        $candidate = parse_url($path, PHP_URL_PATH);
+        $candidate = is_string($candidate) && $candidate !== '' ? $candidate : $path;
+        $extension = strtolower(pathinfo($candidate, PATHINFO_EXTENSION));
+
+        return $extension === 'm3u8' ? 'hls' : 'file';
     }
 }

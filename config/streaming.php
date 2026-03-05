@@ -20,6 +20,7 @@ return [
 
     'autoprocess' => [
         'enabled' => (bool) env('STREAM_AUTOPROCESS_ENABLED', true),
+        'fallback_to_source' => (bool) env('STREAM_AUTOPROCESS_FALLBACK_TO_SOURCE', true),
         'ffmpeg_binary' => env('FFMPEG_BINARY', 'ffmpeg'),
         'ffprobe_binary' => env('FFPROBE_BINARY', 'ffprobe'),
         'default_heights' => array_values(array_filter(array_map(
