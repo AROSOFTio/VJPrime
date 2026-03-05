@@ -1,7 +1,18 @@
 <x-layouts.stream :title="$movie->title . ' - VJPrime'" :wallpaper-posters="[$movie->backdrop_url, $movie->poster_url]">
+    @php
+        $posterFallback = asset('images/vjprime-poster-fallback.svg');
+        $posterSrc = $movie->poster_url ?: $posterFallback;
+    @endphp
     <section class="grid gap-6 lg:grid-cols-[280px,1fr]">
         <div>
-            <img src="{{ $movie->poster_url }}" alt="{{ $movie->title }}" class="w-full rounded-xl border border-white/10 object-cover">
+            <img
+                src="{{ $posterSrc }}"
+                alt="{{ $movie->title }}"
+                loading="lazy"
+                decoding="async"
+                onerror="this.onerror=null;this.src='{{ $posterFallback }}';"
+                class="w-full rounded-xl border border-white/10 object-cover"
+            >
         </div>
 
         <div class="space-y-4">
@@ -104,4 +115,3 @@
         </section>
     @endif
 </x-layouts.stream>
-

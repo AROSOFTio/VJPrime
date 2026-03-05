@@ -10,7 +10,7 @@
                 id="player"
                 controls
                 playsinline
-                preload="metadata"
+                preload="auto"
                 poster="{{ $movie->backdrop_url ?: $movie->poster_url }}"
                 class="aspect-video w-full bg-black object-contain md:max-h-[58vh]"
             ></video>
@@ -72,6 +72,11 @@
     </section>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
+    <style>
+        .plyr--video .plyr__control--overlaid {
+            display: none !important;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
     <script>
@@ -114,7 +119,6 @@
 
             const basePlyrOptions = {
                 controls: [
-                    'play-large',
                     'rewind',
                     'play',
                     'fast-forward',
@@ -259,7 +263,13 @@
                 if (window.Hls && window.Hls.isSupported()) {
                     hlsInstance = new window.Hls({
                         enableWorker: true,
-                        backBufferLength: 90,
+                        lowLatencyMode: true,
+                        startLevel: 0,
+                        backBufferLength: 30,
+                        maxBufferLength: 20,
+                        maxMaxBufferLength: 30,
+                        capLevelToPlayerSize: true,
+                        abrEwmaDefaultEstimate: 800000,
                     });
 
                     hlsInstance.loadSource(hlsUrl);

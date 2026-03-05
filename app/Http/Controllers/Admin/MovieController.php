@@ -7,6 +7,7 @@ use App\Models\Genre;
 use App\Models\Language;
 use App\Models\Movie;
 use App\Models\Vj;
+use App\Services\ImageAssetService;
 use App\Services\VideoIngestService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,8 @@ use ZipArchive;
 class MovieController extends Controller
 {
     public function __construct(
-        private readonly VideoIngestService $videoIngestService
+        private readonly VideoIngestService $videoIngestService,
+        private readonly ImageAssetService $imageAssetService
     ) {}
 
     public function index(Request $request): View
@@ -184,8 +186,8 @@ class MovieController extends Controller
             'description' => ['nullable', 'string'],
             'poster_url' => ['nullable', 'string', 'max:2048'],
             'backdrop_url' => ['nullable', 'string', 'max:2048'],
-            'poster_file' => ['nullable', 'image', 'max:5120'],
-            'backdrop_file' => ['nullable', 'image', 'max:8192'],
+            'poster_file' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120'],
+            'backdrop_file' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:8192'],
             'year' => ['nullable', 'integer', 'between:1900,2100'],
             'duration_seconds' => ['required', 'integer', 'min:1'],
             'age_rating' => ['nullable', 'string', 'max:20'],
@@ -213,6 +215,8 @@ class MovieController extends Controller
             'source_video_upload.max' => 'Source video upload is larger than allowed by current server limits.',
             'preview_clip_upload.max' => 'Preview upload is larger than allowed by current server limits.',
             'download_file_upload.max' => 'Download upload is larger than allowed by current server limits.',
+            'poster_file.mimetypes' => 'Poster image must be JPG, JPEG, PNG, or WEBP.',
+            'backdrop_file.mimetypes' => 'Backdrop image must be JPG, JPEG, PNG, or WEBP.',
         ]);
 
         $validated['slug'] = $validated['slug'] ?: Str::slug($validated['title']);
@@ -247,14 +251,24 @@ class MovieController extends Controller
         }
 
         if ($request->file('poster_file') instanceof UploadedFile) {
-            $validated['poster_url'] = Storage::disk('public')->url(
-                $request->file('poster_file')->store('movies/posters', 'public')
+            $validated['poster_url'] = $this->imageAssetService->storeOptimizedPublicImage(
+                $request->file('poster_file'),
+                'movies/posters',
+                900,
+                1350,
+                82,
+                'poster_file'
             );
         }
 
         if ($request->file('backdrop_file') instanceof UploadedFile) {
-            $validated['backdrop_url'] = Storage::disk('public')->url(
-                $request->file('backdrop_file')->store('movies/backdrops', 'public')
+            $validated['backdrop_url'] = $this->imageAssetService->storeOptimizedPublicImage(
+                $request->file('backdrop_file'),
+                'movies/backdrops',
+                1920,
+                1080,
+                80,
+                'backdrop_file'
             );
         }
 

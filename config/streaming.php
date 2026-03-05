@@ -27,7 +27,7 @@ return [
             fn ($value) => (int) trim((string) $value),
             explode(',', (string) env('STREAM_DEFAULT_RENDITIONS', '360,480,720,1080'))
         ))),
-        'hls_segment_seconds' => (int) env('STREAM_HLS_SEGMENT_SECONDS', 6),
+        'hls_segment_seconds' => (int) env('STREAM_HLS_SEGMENT_SECONDS', 4),
         'preview_seconds' => (int) env('STREAM_PREVIEW_SECONDS', 20),
         'ffmpeg_preset' => env('STREAM_FFMPEG_PRESET', 'veryfast'),
         'timeout_seconds' => (int) env('STREAM_AUTOPROCESS_TIMEOUT_SECONDS', 0),

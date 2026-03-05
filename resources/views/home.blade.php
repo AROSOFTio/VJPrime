@@ -4,6 +4,8 @@
             ->filter()
             ->take(8)
             ->values();
+        $heroFallback = asset('images/vjprime-hero-fallback.svg');
+        $thumbFallback = asset('images/vjprime-poster-fallback.svg');
         $continueMovies = $continueWatching
             ->pluck('movie')
             ->filter()
@@ -24,8 +26,11 @@
                             class="absolute inset-0 transition-opacity duration-700 {{ $index === 0 ? 'opacity-100' : 'pointer-events-none opacity-0' }}"
                         >
                             <img
-                                src="{{ $movie->backdrop_url ?: $movie->poster_url ?: 'https://picsum.photos/seed/VJPrime-hero/1600/900' }}"
+                                src="{{ $movie->backdrop_url ?: $movie->poster_url ?: $heroFallback }}"
                                 alt="{{ $movie->title }}"
+                                loading="lazy"
+                                decoding="async"
+                                onerror="this.onerror=null;this.src='{{ $heroFallback }}';"
                                 class="absolute inset-0 h-full w-full object-cover"
                             >
                             <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-slate-950/15"></div>
@@ -106,7 +111,14 @@
                                 data-index="{{ $index }}"
                                 class="group flex min-w-[9rem] items-center gap-2 rounded-md border border-white/10 bg-slate-900/65 p-1.5 text-left transition hover:border-white/30 hover:bg-slate-800/80"
                             >
-                                <img src="{{ $movie->poster_url ?: 'https://picsum.photos/seed/VJPrime-hero-thumb/160/240' }}" alt="{{ $movie->title }}" class="h-12 w-9 rounded object-cover">
+                                <img
+                                    src="{{ $movie->poster_url ?: $thumbFallback }}"
+                                    alt="{{ $movie->title }}"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onerror="this.onerror=null;this.src='{{ $thumbFallback }}';"
+                                    class="h-12 w-9 rounded object-cover"
+                                >
                                 <div>
                                     <p class="line-clamp-1 text-xs font-medium text-white">{{ $movie->title }}</p>
                                     <p class="text-[11px] text-slate-400">{{ $movie->year ?: now()->year }}</p>

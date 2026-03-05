@@ -196,7 +196,7 @@ class VideoIngestService
             }
         }
 
-        $segmentDuration = max(2, (int) config('streaming.autoprocess.hls_segment_seconds', 6));
+        $segmentDuration = max(2, (int) config('streaming.autoprocess.hls_segment_seconds', 4));
         $command = array_merge($command, [
             '-f', 'hls',
             '-hls_time', (string) $segmentDuration,
@@ -288,11 +288,11 @@ class VideoIngestService
     private function bitrateForHeight(int $height): int
     {
         return match (true) {
-            $height <= 360 => 800,
-            $height <= 480 => 1300,
-            $height <= 720 => 2800,
-            $height <= 1080 => 5000,
-            default => 8000,
+            $height <= 360 => 600,
+            $height <= 480 => 900,
+            $height <= 720 => 1800,
+            $height <= 1080 => 3200,
+            default => 4500,
         };
     }
 

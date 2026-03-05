@@ -6,7 +6,8 @@
 
 @php
     $compact = (bool) $compact;
-    $poster = $movie->poster_url ?: 'https://picsum.photos/seed/VJPrime-fallback/600/900';
+    $posterFallback = asset('images/vjprime-poster-fallback.svg');
+    $poster = $movie->poster_url ?: $posterFallback;
     $preview = $movie->asset?->preview_clip_path;
     $wrapperClass = $compact
         ? 'preview-card group relative w-[7.4rem] shrink-0 sm:w-[8.1rem] md:w-[8.8rem] lg:w-[9.6rem]'
@@ -18,7 +19,14 @@
 <article class="{{ $wrapperClass }}">
     <a href="{{ route('movies.show', $movie->slug) }}" class="block overflow-hidden {{ $cardFrameClass }} border border-white/10 bg-slate-900/70">
         <div class="relative aspect-[2/3] overflow-hidden">
-            <img src="{{ $poster }}" alt="{{ $movie->title }}" class="h-full w-full object-cover {{ $imageTransitionClass }}">
+            <img
+                src="{{ $poster }}"
+                alt="{{ $movie->title }}"
+                loading="lazy"
+                decoding="async"
+                onerror="this.onerror=null;this.src='{{ $posterFallback }}';"
+                class="h-full w-full object-cover {{ $imageTransitionClass }}"
+            >
             @if ($preview)
                 <video
                     data-preview

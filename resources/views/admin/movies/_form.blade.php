@@ -160,7 +160,8 @@
             </div>
             <div>
                 <label class="mb-1 block text-xs text-slate-300">Upload poster file</label>
-                <input type="file" name="poster_file" accept="image/*" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <input type="file" name="poster_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <p class="mt-1 text-[11px] text-slate-400">Allowed: JPG, JPEG, PNG, WEBP. Uploaded image is optimized for faster loading.</p>
             </div>
             <div>
                 <label class="mb-1 block text-xs text-slate-300">Backdrop URL</label>
@@ -168,7 +169,8 @@
             </div>
             <div>
                 <label class="mb-1 block text-xs text-slate-300">Upload backdrop file</label>
-                <input type="file" name="backdrop_file" accept="image/*" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <input type="file" name="backdrop_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <p class="mt-1 text-[11px] text-slate-400">Allowed: JPG, JPEG, PNG, WEBP. Uploaded image is optimized for faster loading.</p>
             </div>
         </div>
     </div>
