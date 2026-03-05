@@ -4,6 +4,7 @@ RUN apk add --no-cache \
     bash \
     git \
     curl \
+    ffmpeg \
     libzip-dev \
     postgresql-dev \
     oniguruma-dev \

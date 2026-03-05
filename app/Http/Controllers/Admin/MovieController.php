@@ -7,6 +7,7 @@ use App\Models\Genre;
 use App\Models\Language;
 use App\Models\Movie;
 use App\Models\Vj;
+use App\Services\VideoIngestService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,10 @@ use ZipArchive;
 
 class MovieController extends Controller
 {
+    public function __construct(
+        private readonly VideoIngestService $videoIngestService
+    ) {}
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -132,6 +137,7 @@ class MovieController extends Controller
         $previewMaxKb = $this->maxUploadKb(512000);
         $downloadMaxKb = $this->maxUploadKb(1572864);
         $hlsPackageMaxKb = $this->maxUploadKb(1024000);
+        $sourceVideoMaxKb = $this->maxUploadKb(1572864);
         $defaultDisk = (string) config('filesystems.default', 'local');
         $defaultDiskDriver = (string) config("filesystems.disks.{$defaultDisk}.driver", 'local');
         $publicStoragePath = public_path('storage');
@@ -145,6 +151,7 @@ class MovieController extends Controller
                 'hls_package' => $hlsPackageMaxKb,
                 'preview' => $previewMaxKb,
                 'download' => $downloadMaxKb,
+                'source_video' => $sourceVideoMaxKb,
                 'server_upload' => $this->toKb((string) ini_get('upload_max_filesize')),
                 'server_post' => $this->toKb((string) ini_get('post_max_size')),
             ],
@@ -152,6 +159,7 @@ class MovieController extends Controller
                 'name' => $defaultDisk,
                 'driver' => $defaultDiskDriver,
                 'supports_hls_package' => $defaultDiskDriver === 'local',
+                'supports_autoprocess' => $defaultDiskDriver === 'local',
                 'public_storage_linked' => is_link($publicStoragePath) || is_dir($publicStoragePath),
             ],
         ];
@@ -163,6 +171,7 @@ class MovieController extends Controller
         $previewMaxKb = $this->maxUploadKb(512000); // 500 MB
         $downloadMaxKb = $this->maxUploadKb(1572864); // 1.5 GB
         $hlsPackageMaxKb = $this->maxUploadKb(1024000); // 1 GB
+        $sourceVideoMaxKb = $this->maxUploadKb(1572864); // 1.5 GB
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -189,6 +198,7 @@ class MovieController extends Controller
             'hls_master_path' => ['nullable', 'string', 'max:2048'],
             'hls_master_upload' => ['nullable', 'file', 'extensions:m3u8', 'max:'.$hlsMasterMaxKb],
             'hls_package_upload' => ['nullable', 'file', 'mimes:zip', 'max:'.$hlsPackageMaxKb],
+            'source_video_upload' => ['nullable', 'file', 'mimes:mp4,mkv,mov,webm,avi,wmv,mpeg,mpg,m4v', 'max:'.$sourceVideoMaxKb],
             'preview_clip_path' => ['nullable', 'string', 'max:2048'],
             'preview_clip_upload' => ['nullable', 'file', 'max:'.$previewMaxKb],
             'download_file_path' => ['nullable', 'string', 'max:2048'],
@@ -199,6 +209,7 @@ class MovieController extends Controller
             'hls_master_upload.extensions' => 'HLS master upload must be a .m3u8 playlist file.',
             'hls_master_upload.max' => 'HLS master upload is larger than allowed by current server limits.',
             'hls_package_upload.max' => 'HLS package upload is larger than allowed by current server limits.',
+            'source_video_upload.max' => 'Source video upload is larger than allowed by current server limits.',
             'preview_clip_upload.max' => 'Preview upload is larger than allowed by current server limits.',
             'download_file_upload.max' => 'Download upload is larger than allowed by current server limits.',
         ]);
@@ -226,10 +237,11 @@ class MovieController extends Controller
 
         $hasUploadedMaster = $request->file('hls_master_upload') instanceof UploadedFile;
         $hasUploadedPackage = $request->file('hls_package_upload') instanceof UploadedFile;
+        $hasUploadedSourceVideo = $request->file('source_video_upload') instanceof UploadedFile;
         $hasExistingMaster = ! empty($movie->asset?->hls_master_path);
-        if (empty($validated['hls_master_path']) && ! $hasUploadedMaster && ! $hasUploadedPackage && ! $hasExistingMaster) {
+        if (empty($validated['hls_master_path']) && ! $hasUploadedMaster && ! $hasUploadedPackage && ! $hasUploadedSourceVideo && ! $hasExistingMaster) {
             throw ValidationException::withMessages([
-                'hls_master_path' => 'Provide HLS master path or upload an HLS .m3u8 file / ZIP package.',
+                'hls_master_path' => 'Provide HLS master path, upload HLS package, or upload source video for automatic processing.',
             ]);
         }
 
@@ -262,7 +274,17 @@ class MovieController extends Controller
             'size_bytes',
         ]);
 
-        if ($request->file('hls_package_upload') instanceof UploadedFile) {
+        if ($request->file('source_video_upload') instanceof UploadedFile) {
+            if (function_exists('set_time_limit')) {
+                @set_time_limit(0);
+            }
+
+            $payload = array_merge($payload, $this->videoIngestService->ingest(
+                $movie,
+                $request->file('source_video_upload'),
+                $validated['renditions_json'] ?? []
+            ));
+        } elseif ($request->file('hls_package_upload') instanceof UploadedFile) {
             $payload['hls_master_path'] = $this->storeHlsPackageUpload($request->file('hls_package_upload'), $movie);
         } elseif ($request->file('hls_master_upload') instanceof UploadedFile) {
             $payload['hls_master_path'] = $request->file('hls_master_upload')->store("movies/streams/{$movie->id}", config('filesystems.default'));

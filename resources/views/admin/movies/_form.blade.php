@@ -18,17 +18,18 @@
 @endif
 
 <div class="mb-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
-    <p class="font-medium">Quick upload guide</p>
+    <p class="font-medium">Simple publish flow</p>
     <ol class="mt-1 list-decimal space-y-1 pl-4">
         <li>Choose <strong>Movie</strong> or <strong>Series Episode</strong>, then fill the basic details.</li>
-        <li>For streaming, provide <strong>HLS master path/URL</strong> OR upload <strong>HLS ZIP package</strong> (recommended).</li>
-        <li>Add optional preview and download file (URL or upload), then click <strong>{{ $isEdit ? 'Update Movie' : 'Create Movie' }}</strong>.</li>
+        <li>Upload <strong>one source video</strong> (720p/1080p). The system auto-generates HLS stream + preview clip.</li>
+        <li>Optionally upload poster/backdrop and click <strong>{{ $isEdit ? 'Update Movie' : 'Create Movie' }}</strong>.</li>
     </ol>
 </div>
 
 <div class="mb-3 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
     <p class="font-medium">Upload limits (effective on this server)</p>
     <p class="mt-1">
+        Source video: {{ number_format(($uploadLimits['source_video'] ?? 0) / 1024, 1) }} MB |
         HLS playlist: {{ number_format(($uploadLimits['hls_master'] ?? 0) / 1024, 1) }} MB |
         HLS ZIP package: {{ number_format(($uploadLimits['hls_package'] ?? 0) / 1024, 1) }} MB |
         Preview: {{ number_format(($uploadLimits['preview'] ?? 0) / 1024, 1) }} MB |
@@ -49,6 +50,11 @@
     @if (! ($diskInfo['supports_hls_package'] ?? true))
         <p class="mt-1 text-[11px] text-amber-200">
             HLS ZIP extraction requires a local filesystem disk. For current disk, use HLS URL/path instead.
+        </p>
+    @endif
+    @if (! ($diskInfo['supports_autoprocess'] ?? true))
+        <p class="mt-1 text-[11px] text-amber-200">
+            One-click source video processing requires local filesystem storage on this server.
         </p>
     @endif
 </div>
@@ -170,60 +176,67 @@
     <div class="sm:col-span-2 border-t border-white/10 pt-4">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Streaming source (required)</p>
         <p class="mb-3 text-xs text-slate-400">
-            Use one method: HLS path/URL, upload a <code>.m3u8</code> master playlist, or upload an HLS ZIP package.
+            Recommended: upload one source video and the platform will auto-generate streaming links, resolutions, and preview clip.
         </p>
+
         <div class="grid gap-3 sm:grid-cols-2">
             <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs text-slate-300">HLS master path or URL</label>
-                <input type="text" name="hls_master_path" value="{{ old('hls_master_path', $asset->hls_master_path ?? '') }}" placeholder="movies/streams/12/master.m3u8 or https://cdn.example.com/master.m3u8" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-300">Upload HLS master (.m3u8)</label>
-                <input type="file" name="hls_master_upload" accept=".m3u8" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-300">Upload HLS ZIP package (recommended)</label>
-                <input type="file" name="hls_package_upload" accept=".zip,application/zip" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-                <p class="mt-1 text-[11px] text-slate-400">ZIP should include master playlist + variant playlists + all segment files.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="sm:col-span-2 border-t border-white/10 pt-4">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Preview clip (optional)</p>
-        <div class="grid gap-3 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs text-slate-300">Preview clip path or URL</label>
-                <input type="text" name="preview_clip_path" value="{{ old('preview_clip_path', $asset->preview_clip_path ?? '') }}" placeholder="https://... or movies/previews/12/clip.mp4" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <label class="mb-1 block text-xs text-slate-300">Upload source video (recommended)</label>
+                <input type="file" name="source_video_upload" accept="video/*,.mp4,.mkv,.mov,.webm,.avi,.wmv,.mpeg,.mpg,.m4v" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <p class="mt-1 text-[11px] text-slate-400">
+                    Upload your main video once (720p/1080p). System creates HLS <code>.m3u8</code> + segments + preview clip automatically.
+                </p>
             </div>
             <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs text-slate-300">Upload preview clip</label>
-                <input type="file" name="preview_clip_upload" accept="video/mp4,video/webm,video/*" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                <label class="mb-1 block text-xs text-slate-300">Renditions (optional)</label>
+                @php
+                    $existingRenditions = is_array($asset->renditions_json ?? null) ? $asset->renditions_json : [];
+                    $defaultRenditions = ! empty($existingRenditions) ? $existingRenditions : ['auto', '360p', '480p', '720p', '1080p'];
+                @endphp
+                <input type="text" name="renditions_json" value="{{ old('renditions_json', implode(',', $defaultRenditions)) }}" placeholder="auto,360p,480p,720p,1080p" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
             </div>
         </div>
-    </div>
 
-    <div class="sm:col-span-2 border-t border-white/10 pt-4">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Download file (optional)</p>
-        <div class="grid gap-3 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs text-slate-300">Download file path or URL</label>
-                <input type="text" name="download_file_path" value="{{ old('download_file_path', $asset->download_file_path ?? '') }}" placeholder="movies/downloads/12/movie.mp4 or https://..." class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+        <details class="mt-3 rounded-md border border-white/10 bg-slate-950/40 p-3">
+            <summary class="cursor-pointer text-xs font-semibold uppercase tracking-wide text-slate-300">
+                Advanced manual inputs (optional)
+            </summary>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs text-slate-300">HLS master path or URL</label>
+                    <input type="text" name="hls_master_path" value="{{ old('hls_master_path', $asset->hls_master_path ?? '') }}" placeholder="movies/streams/12/master.m3u8 or https://cdn.example.com/master.m3u8" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs text-slate-300">Upload HLS master (.m3u8)</label>
+                    <input type="file" name="hls_master_upload" accept=".m3u8" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs text-slate-300">Upload HLS ZIP package</label>
+                    <input type="file" name="hls_package_upload" accept=".zip,application/zip" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                    <p class="mt-1 text-[11px] text-slate-400">ZIP should include master playlist + variant playlists + segment files.</p>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs text-slate-300">Preview clip path or URL</label>
+                    <input type="text" name="preview_clip_path" value="{{ old('preview_clip_path', $asset->preview_clip_path ?? '') }}" placeholder="https://... or movies/previews/12/clip.mp4" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs text-slate-300">Upload preview clip (override)</label>
+                    <input type="file" name="preview_clip_upload" accept="video/mp4,video/webm,video/*" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs text-slate-300">Download file path or URL</label>
+                    <input type="text" name="download_file_path" value="{{ old('download_file_path', $asset->download_file_path ?? '') }}" placeholder="movies/downloads/12/movie.mp4 or https://..." class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs text-slate-300">Upload download file (override)</label>
+                    <input type="file" name="download_file_upload" accept="video/mp4,video/x-matroska,video/*,.zip" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs text-slate-300">File size (bytes, optional)</label>
+                    <input type="number" name="size_bytes" value="{{ old('size_bytes', $asset->size_bytes ?? '') }}" placeholder="Auto-filled on upload" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+                </div>
             </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-300">Upload download file</label>
-                <input type="file" name="download_file_upload" accept="video/mp4,video/x-matroska,video/*,.zip" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-300">File size (bytes, optional)</label>
-                <input type="number" name="size_bytes" value="{{ old('size_bytes', $asset->size_bytes ?? '') }}" placeholder="Auto-filled on upload" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
-            </div>
-        </div>
-    </div>
-
-    <div class="sm:col-span-2 border-t border-white/10 pt-4">
-        <label class="mb-1 block text-xs text-slate-300">Renditions (optional)</label>
-        <input type="text" name="renditions_json" value="{{ old('renditions_json', implode(',', $asset->renditions_json ?? [])) }}" placeholder="auto,360p,480p,720p,1080p" class="w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm">
+        </details>
     </div>
 
     <div class="sm:col-span-2">
