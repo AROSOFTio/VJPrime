@@ -1,48 +1,20 @@
 <x-layouts.stream :title="$movie->title . ' - Player'" :wallpaper-posters="[$movie->backdrop_url, $movie->poster_url]">
-    <section class="space-y-4">
+    <section class="mx-auto max-w-5xl space-y-4">
         <div>
             <p class="text-xs uppercase tracking-[0.2em] text-red-400">{{ $movie->language->name }} &middot; {{ $movie->vj->name }}</p>
             <h1 class="text-2xl font-semibold">{{ $movie->title }}</h1>
         </div>
 
-        <div class="relative overflow-hidden rounded-xl border border-white/10 bg-black">
-            <video id="player" controls playsinline preload="metadata" class="aspect-video w-full bg-black"></video>
-            <div id="playback-blocked" class="absolute inset-0 hidden items-center justify-center bg-slate-950/85 p-6 text-center">
+        <div class="relative overflow-hidden rounded-xl border border-white/10 bg-black shadow-[0_20px_60px_rgba(2,6,23,0.6)]">
+            <video id="player" playsinline preload="metadata" class="aspect-video w-full bg-black"></video>
+
+            <div id="playback-blocked" class="absolute inset-0 hidden items-center justify-center bg-slate-950/90 p-6 text-center">
                 <div>
                     <p class="text-lg font-semibold text-white">Daily free limit reached</p>
                     <p class="mt-2 text-sm text-slate-300">You have used your 30 free minutes for this 24-hour window.</p>
                     <a href="{{ route('account.index') }}" class="mt-4 inline-block rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white">Upgrade Prompt</a>
                 </div>
             </div>
-        </div>
-
-        <div class="rounded-md border border-white/10 bg-slate-900/70 p-3">
-            <div class="flex flex-wrap items-center gap-2">
-                <button id="control-play-toggle" type="button" class="rounded-md border border-white/10 bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">Play</button>
-                <button id="control-rewind" type="button" class="rounded-md border border-white/10 bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">-10s</button>
-                <button id="control-forward" type="button" class="rounded-md border border-white/10 bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">+10s</button>
-                <button id="control-fullscreen" type="button" class="rounded-md border border-white/10 bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700">Fullscreen</button>
-
-                <div class="ms-auto flex flex-wrap items-center gap-2">
-                    <label for="speed-select" class="text-xs text-slate-300">Speed</label>
-                    <select id="speed-select" class="rounded-md border border-white/10 bg-slate-900 px-3 py-1.5 text-sm">
-                        <option value="0.5">0.5x</option>
-                        <option value="0.75">0.75x</option>
-                        <option value="1" selected>1x</option>
-                        <option value="1.25">1.25x</option>
-                        <option value="1.5">1.5x</option>
-                        <option value="2">2x</option>
-                    </select>
-
-                    <div id="quality-wrap" class="flex items-center gap-2">
-                        <label for="quality-select" class="text-xs text-slate-300">Resolution</label>
-                        <select id="quality-select" class="rounded-md border border-white/10 bg-slate-900 px-3 py-1.5 text-sm">
-                            <option value="-1">Auto</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <p id="player-status" class="mt-2 text-xs text-slate-400"></p>
         </div>
 
         <div class="rounded-md border border-white/10 bg-slate-900/70 p-4 text-sm text-slate-200">
@@ -54,30 +26,27 @@
                     <span id="remaining-seconds" class="font-semibold">{{ $quotaRemaining }}</span> seconds remaining today
                 @endif
             </p>
+            <p id="player-status" class="mt-2 text-xs text-slate-400"></p>
         </div>
     </section>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
     <script>
         (async () => {
-            const player = document.getElementById('player');
-            const playToggleBtn = document.getElementById('control-play-toggle');
-            const rewindBtn = document.getElementById('control-rewind');
-            const forwardBtn = document.getElementById('control-forward');
-            const fullscreenBtn = document.getElementById('control-fullscreen');
-            const speedSelect = document.getElementById('speed-select');
-            const qualitySelect = document.getElementById('quality-select');
-            const qualityWrap = document.getElementById('quality-wrap');
-            const playerStatus = document.getElementById('player-status');
+            const playerElement = document.getElementById('player');
             const blocked = document.getElementById('playback-blocked');
             const remainingEl = document.getElementById('remaining-seconds');
+            const statusEl = document.getElementById('player-status');
             const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+            const movieId = {{ $movie->id }};
 
             let viewId = null;
             let isBlocked = false;
             let hlsInstance = null;
+            let plyrInstance = null;
             let lastHeartbeatPosition = 0;
-            const movieId = {{ $movie->id }};
 
             const jsonHeaders = {
                 'Accept': 'application/json',
@@ -85,25 +54,51 @@
                 'X-CSRF-TOKEN': csrf,
             };
 
-            let startResponse;
+            const basePlyrOptions = {
+                controls: [
+                    'play-large',
+                    'rewind',
+                    'play',
+                    'fast-forward',
+                    'progress',
+                    'current-time',
+                    'duration',
+                    'mute',
+                    'volume',
+                    'settings',
+                    'pip',
+                    'airplay',
+                    'fullscreen',
+                ],
+                settings: ['quality', 'speed'],
+                speed: {
+                    selected: 1,
+                    options: [0.5, 0.75, 1, 1.25, 1.5, 2],
+                },
+                autoplay: true,
+                muted: true,
+                keyboard: { focused: true, global: true },
+                tooltips: { controls: true, seek: true },
+                seekTime: 10,
+            };
+
+            const startResponse = await fetch('/api/playback/start', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: jsonHeaders,
+                body: JSON.stringify({ movie_id: movieId }),
+            });
+
             let startData = {};
             try {
-                startResponse = await fetch('/api/playback/start', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: jsonHeaders,
-                    body: JSON.stringify({ movie_id: movieId }),
-                });
-
-                const startPayload = await startResponse.text();
-                startData = startPayload ? JSON.parse(startPayload) : {};
+                startData = await startResponse.json();
             } catch (_error) {
-                setStatus('Unable to load playback data. Check network and try again.');
+                setStatus('Failed to load playback data.');
                 return;
             }
 
-            if (!startResponse || !startResponse.ok) {
-                if (startResponse?.status === 402) {
+            if (!startResponse.ok) {
+                if (startResponse.status === 402) {
                     blockPlayback(startData.message || 'Daily free limit reached');
                     return;
                 }
@@ -116,25 +111,53 @@
                 remainingEl.textContent = startData.remaining_seconds;
             }
 
-            bindControls();
-            initPlayer(startData.hls_url, startData.stream_type || 'hls');
+            if ((startData.stream_type || 'hls') === 'hls') {
+                initHlsPlayer(startData.hls_url);
+            } else {
+                initDirectPlayer(startData.hls_url);
+            }
+
             startHeartbeat();
             window.addEventListener('beforeunload', () => sendStop(false));
-            player.addEventListener('ended', () => sendStop(true));
-            player.addEventListener('play', syncPlayState);
-            player.addEventListener('pause', syncPlayState);
-            syncPlayState();
+            playerElement.addEventListener('ended', () => sendStop(true));
 
-            function initPlayer(sourceUrl, streamType) {
-                if (streamType === 'hls' && window.Hls && window.Hls.isSupported()) {
-                    hlsInstance = new Hls();
+            function initHlsPlayer(sourceUrl) {
+                if (window.Hls && window.Hls.isSupported()) {
+                    hlsInstance = new Hls({
+                        enableWorker: true,
+                        backBufferLength: 90,
+                    });
+
                     hlsInstance.loadSource(sourceUrl);
-                    hlsInstance.attachMedia(player);
+                    hlsInstance.attachMedia(playerElement);
 
                     hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                        setStatus('Adaptive streaming enabled. Choose Auto or manual resolution below.');
-                        player.play().catch(() => {});
-                        populateQualities();
+                        const qualityHeights = Array.from(
+                            new Set(
+                                hlsInstance.levels
+                                    .map((level) => Number(level.height || 0))
+                                    .filter((height) => height > 0)
+                            )
+                        ).sort((a, b) => a - b);
+
+                        plyrInstance = new Plyr(playerElement, {
+                            ...basePlyrOptions,
+                            quality: {
+                                default: 0,
+                                options: [0, ...qualityHeights],
+                                forced: true,
+                                onChange: (newQuality) => updateHlsQuality(newQuality),
+                            },
+                            i18n: {
+                                qualityLabel: {
+                                    0: 'Auto',
+                                },
+                            },
+                        });
+
+                        attachPlyrEvents();
+                        tryPlayImmediately();
+                        setStatus('Adaptive streaming ready. Use Settings to switch Auto/360/480/720/1080.');
                     });
 
                     hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
@@ -142,143 +165,98 @@
                             return;
                         }
 
-                        hlsInstance?.destroy();
+                        setStatus('HLS error detected, switching to normal stream mode.');
+                        hlsInstance.destroy();
                         hlsInstance = null;
-                        setStatus('Stream playback error. Try reloading this page.');
+                        initDirectPlayer(sourceUrl);
                     });
-                } else if (streamType === 'hls' && player.canPlayType('application/vnd.apple.mpegurl')) {
-                    player.src = sourceUrl;
-                    player.addEventListener('loadedmetadata', () => player.play().catch(() => {}), { once: true });
-                    setQualityLocked('Auto');
-                    setStatus('Native HLS playback enabled.');
-                } else {
-                    fallbackToDirect(sourceUrl);
-                }
-            }
 
-            function fallbackToDirect(sourceUrl) {
-                setQualityLocked('Source');
-                player.src = sourceUrl;
-                setStatus('Playing source file stream.');
-                player.addEventListener('loadedmetadata', () => player.play().catch(() => {}), { once: true });
-            }
-
-            function populateQualities() {
-                if (!hlsInstance || !qualitySelect) {
                     return;
                 }
 
-                qualitySelect.innerHTML = '';
-                const autoOption = document.createElement('option');
-                autoOption.value = '-1';
-                autoOption.textContent = 'Auto';
-                qualitySelect.appendChild(autoOption);
+                if (playerElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    playerElement.src = sourceUrl;
+                    initNativeHlsPlayer();
+                    return;
+                }
 
-                const levelsByHeight = new Map();
-                hlsInstance.levels.forEach((level, index) => {
-                    const height = Number(level.height || 0);
-                    if (!height || levelsByHeight.has(height)) {
-                        return;
-                    }
-                    levelsByHeight.set(height, index);
+                setStatus('This browser does not support HLS playback.');
+            }
+
+            function initNativeHlsPlayer() {
+                plyrInstance = new Plyr(playerElement, {
+                    ...basePlyrOptions,
+                    quality: undefined,
+                    settings: ['speed'],
                 });
 
-                Array.from(levelsByHeight.entries())
-                    .sort((a, b) => a[0] - b[0])
-                    .forEach(([height, index]) => {
-                        const option = document.createElement('option');
-                        option.value = String(index);
-                        option.textContent = `${height}p`;
-                        qualitySelect.appendChild(option);
-                    });
+                attachPlyrEvents();
+                tryPlayImmediately();
+                setStatus('Native HLS playback active.');
+            }
 
-                qualitySelect.disabled = false;
-                qualitySelect.value = '-1';
-                qualitySelect.onchange = (event) => {
-                    if (!hlsInstance) {
-                        return;
+            function initDirectPlayer(sourceUrl) {
+                if (hlsInstance) {
+                    hlsInstance.destroy();
+                    hlsInstance = null;
+                }
+
+                if (plyrInstance) {
+                    plyrInstance.destroy();
+                    plyrInstance = null;
+                }
+
+                playerElement.src = sourceUrl;
+                plyrInstance = new Plyr(playerElement, {
+                    ...basePlyrOptions,
+                    quality: undefined,
+                    settings: ['speed'],
+                });
+
+                attachPlyrEvents();
+                tryPlayImmediately();
+                setStatus('Playing normal stream mode.');
+            }
+
+            function updateHlsQuality(newQuality) {
+                if (!hlsInstance) {
+                    return;
+                }
+
+                if (Number(newQuality) === 0) {
+                    hlsInstance.currentLevel = -1;
+                    return;
+                }
+
+                const levelIndex = hlsInstance.levels.findIndex((level) => Number(level.height || 0) === Number(newQuality));
+                if (levelIndex >= 0) {
+                    hlsInstance.currentLevel = levelIndex;
+                }
+            }
+
+            function tryPlayImmediately() {
+                playerElement.muted = true;
+                const promise = playerElement.play();
+                if (promise && typeof promise.catch === 'function') {
+                    promise.catch(() => {
+                        setStatus('Tap play if autoplay is blocked by browser policy.');
+                    });
+                }
+            }
+
+            function attachPlyrEvents() {
+                playerElement.addEventListener('play', () => {
+                    if (!isBlocked) {
+                        setStatus('');
                     }
-                    hlsInstance.currentLevel = Number(event.target.value);
-                };
-            }
-
-            function bindControls() {
-                if (playToggleBtn) {
-                    playToggleBtn.addEventListener('click', async () => {
-                        if (player.paused) {
-                            await player.play().catch(() => {});
-                        } else {
-                            player.pause();
-                        }
-                        syncPlayState();
-                    });
-                }
-
-                if (rewindBtn) {
-                    rewindBtn.addEventListener('click', () => {
-                        player.currentTime = Math.max(0, (player.currentTime || 0) - 10);
-                    });
-                }
-
-                if (forwardBtn) {
-                    forwardBtn.addEventListener('click', () => {
-                        const duration = Number.isFinite(player.duration) ? player.duration : Number.MAX_SAFE_INTEGER;
-                        player.currentTime = Math.min(duration, (player.currentTime || 0) + 10);
-                    });
-                }
-
-                if (speedSelect) {
-                    speedSelect.addEventListener('change', (event) => {
-                        player.playbackRate = Number(event.target.value || 1);
-                    });
-                }
-
-                if (fullscreenBtn) {
-                    fullscreenBtn.addEventListener('click', async () => {
-                        const wrap = player.closest('.relative');
-                        if (!document.fullscreenElement && wrap?.requestFullscreen) {
-                            await wrap.requestFullscreen().catch(() => {});
-                            return;
-                        }
-                        if (document.fullscreenElement && document.exitFullscreen) {
-                            await document.exitFullscreen().catch(() => {});
-                        }
-                    });
-                }
-            }
-
-            function syncPlayState() {
-                if (!playToggleBtn) {
-                    return;
-                }
-                playToggleBtn.textContent = player.paused ? 'Play' : 'Pause';
-            }
-
-            function setQualityLocked(label) {
-                if (!qualitySelect || !qualityWrap) {
-                    return;
-                }
-                qualityWrap.classList.remove('hidden');
-                qualitySelect.innerHTML = '';
-                const option = document.createElement('option');
-                option.value = '-1';
-                option.textContent = label;
-                qualitySelect.appendChild(option);
-                qualitySelect.disabled = true;
-            }
-
-            function setStatus(message) {
-                if (!playerStatus) {
-                    return;
-                }
-                playerStatus.textContent = message;
+                });
             }
 
             function startHeartbeat() {
                 setInterval(async () => {
-                    if (isBlocked || player.paused || player.ended || !viewId) return;
+                    if (isBlocked || playerElement.paused || playerElement.ended || !viewId) return;
 
-                    const currentPosition = Math.floor(player.currentTime || 0);
+                    const currentPosition = Math.floor(playerElement.currentTime || 0);
                     const delta = Math.max(currentPosition - lastHeartbeatPosition, 10);
                     lastHeartbeatPosition = currentPosition;
 
@@ -316,7 +294,7 @@
                     body: JSON.stringify({
                         movie_id: movieId,
                         view_id: viewId,
-                        last_position_seconds: Math.floor(player.currentTime || 0),
+                        last_position_seconds: Math.floor(playerElement.currentTime || 0),
                         completed: completed,
                     }),
                 });
@@ -324,12 +302,18 @@
 
             function blockPlayback(message) {
                 isBlocked = true;
-                player.pause();
+                playerElement.pause();
                 blocked.classList.remove('hidden');
                 blocked.classList.add('flex');
                 blocked.querySelector('p')?.textContent = message;
                 setStatus(message);
             }
+
+            function setStatus(message) {
+                if (!statusEl) return;
+                statusEl.textContent = message;
+            }
         })();
     </script>
 </x-layouts.stream>
+
