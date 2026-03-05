@@ -35,6 +35,40 @@
             </p>
             <p id="player-status" class="mt-2 text-xs text-slate-400"></p>
         </div>
+
+        <div class="rounded-md border border-white/10 bg-slate-900/70 p-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <button
+                    id="download-button"
+                    type="button"
+                    class="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    Download
+                </button>
+
+                <div class="relative">
+                    <button
+                        id="share-toggle"
+                        type="button"
+                        class="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/20"
+                    >
+                        Share
+                    </button>
+
+                    <div
+                        id="share-menu"
+                        class="absolute left-0 z-30 mt-2 hidden w-56 overflow-hidden rounded-md border border-white/15 bg-slate-900/95 shadow-xl"
+                    >
+                        <a data-share-network="telegram" href="#" target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">Telegram</a>
+                        <a data-share-network="whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">WhatsApp</a>
+                        <a data-share-network="x" href="#" target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">X</a>
+                        <a data-share-network="facebook" href="#" target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-800">Facebook</a>
+                        <button data-share-copy type="button" class="block w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800">Copy Link</button>
+                    </div>
+                </div>
+            </div>
+            <p id="action-status" class="mt-2 text-xs text-slate-400"></p>
+        </div>
     </section>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
@@ -47,8 +81,16 @@
             const blockedMessageEl = blocked?.querySelector('[data-blocked-message]');
             const remainingEl = document.getElementById('remaining-seconds');
             const statusEl = document.getElementById('player-status');
+            const actionStatusEl = document.getElementById('action-status');
+            const downloadButton = document.getElementById('download-button');
+            const shareToggle = document.getElementById('share-toggle');
+            const shareMenu = document.getElementById('share-menu');
+            const copyShareButton = document.querySelector('[data-share-copy]');
             const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
             const movieId = {{ $movie->id }};
+            const downloadEndpoint = @json(route('downloads.link', $movie));
+            const shareUrl = @json(route('movies.show', $movie->slug));
+            const shareTitle = @json($movie->title . ' | VJPrime');
 
             let viewId = null;
             let isBlocked = false;
@@ -63,6 +105,11 @@
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf,
+            };
+            const postHeaders = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
             };
 
             const basePlyrOptions = {
@@ -124,6 +171,9 @@
                     setStatus('Playback failed for this title. Re-upload source video from admin.');
                 }
             });
+
+            initShareMenu();
+            initDownloadButton();
 
             initialize().catch(() => {
                 enableNativeControls('Unexpected player error. Refresh and try again.');
@@ -449,6 +499,126 @@
             function setStatus(message) {
                 if (!statusEl) return;
                 statusEl.textContent = message;
+            }
+
+            function setActionStatus(message) {
+                if (!actionStatusEl) {
+                    return;
+                }
+                actionStatusEl.textContent = message;
+            }
+
+            function initDownloadButton() {
+                if (!downloadButton) {
+                    return;
+                }
+
+                downloadButton.addEventListener('click', async () => {
+                    if (downloadButton.disabled) {
+                        return;
+                    }
+
+                    downloadButton.disabled = true;
+                    downloadButton.textContent = 'Preparing...';
+                    setActionStatus('');
+
+                    try {
+                        const response = await fetch(downloadEndpoint, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: postHeaders,
+                        });
+
+                        let payload = {};
+                        try {
+                            payload = await response.json();
+                        } catch (_error) {
+                            payload = {};
+                        }
+
+                        if (!response.ok || !payload.download_url) {
+                            setActionStatus(payload.message || 'Download is not available for this movie.');
+                            return;
+                        }
+
+                        setActionStatus('Download link ready.');
+                        window.open(payload.download_url, '_blank', 'noopener,noreferrer');
+                    } catch (_error) {
+                        setActionStatus('Failed to create download link. Check internet and try again.');
+                    } finally {
+                        downloadButton.disabled = false;
+                        downloadButton.textContent = 'Download';
+                    }
+                });
+            }
+
+            function initShareMenu() {
+                if (!shareToggle || !shareMenu) {
+                    return;
+                }
+
+                const encodedUrl = encodeURIComponent(shareUrl);
+                const encodedText = encodeURIComponent(`Watch ${shareTitle}`);
+                const links = {
+                    telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+                    whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+                    x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+                    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+                };
+
+                shareMenu.querySelectorAll('[data-share-network]').forEach((node) => {
+                    const network = node.getAttribute('data-share-network');
+                    const url = network ? links[network] : null;
+                    if (url) {
+                        node.setAttribute('href', url);
+                    }
+                });
+
+                shareToggle.addEventListener('click', () => {
+                    shareMenu.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (!shareMenu.contains(event.target) && !shareToggle.contains(event.target)) {
+                        shareMenu.classList.add('hidden');
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        shareMenu.classList.add('hidden');
+                    }
+                });
+
+                if (copyShareButton) {
+                    copyShareButton.addEventListener('click', async () => {
+                        const copied = await copyText(shareUrl);
+                        setActionStatus(copied ? 'Link copied to clipboard.' : 'Copy failed. Copy the URL manually.');
+                        shareMenu.classList.add('hidden');
+                    });
+                }
+            }
+
+            async function copyText(text) {
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        return true;
+                    } catch (_error) {
+                        // Fallback below.
+                    }
+                }
+
+                const temp = document.createElement('textarea');
+                temp.value = text;
+                temp.setAttribute('readonly', 'readonly');
+                temp.style.position = 'absolute';
+                temp.style.left = '-9999px';
+                document.body.appendChild(temp);
+                temp.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(temp);
+                return success;
             }
         })();
     </script>
