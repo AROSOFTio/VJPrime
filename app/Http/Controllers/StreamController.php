@@ -8,9 +8,9 @@ use App\Services\DeviceFingerprintService;
 use App\Services\DownloadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\HttpFoundation\Response;
 
 class StreamController extends Controller
 {
@@ -82,16 +82,111 @@ class StreamController extends Controller
         $disk = (string) config('filesystems.default', 'local');
         abort_unless(Storage::disk($disk)->exists($path), 404, 'Stream file not found.');
 
-        $contents = Storage::disk($disk)->get($path);
-
         if ($this->isPlaylist($path)) {
+            $contents = Storage::disk($disk)->get($path);
             $contents = $this->rewritePlaylistContent($request, $movie, $path, $contents);
+
+            return response($contents, 200, [
+                'Content-Type' => $this->contentTypeFor($disk, $path),
+                'Cache-Control' => 'private, max-age=60',
+            ]);
         }
 
-        return response($contents, 200, [
+        if ($this->supportsLocalRangeStreaming($disk)) {
+            return $this->streamLocalFileWithRange($request, Storage::disk($disk)->path($path), $this->contentTypeFor($disk, $path));
+        }
+
+        $readStream = Storage::disk($disk)->readStream($path);
+        abort_unless(is_resource($readStream), 404, 'Stream file unreadable.');
+
+        return response()->stream(function () use ($readStream): void {
+            while (! feof($readStream)) {
+                $chunk = fread($readStream, 1024 * 64);
+                if ($chunk === false || $chunk === '') {
+                    break;
+                }
+                echo $chunk;
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
+            fclose($readStream);
+        }, 200, [
             'Content-Type' => $this->contentTypeFor($disk, $path),
-            'Cache-Control' => $this->isPlaylist($path) ? 'private, max-age=60' : 'private, max-age=300',
+            'Cache-Control' => 'private, max-age=300',
+            'Accept-Ranges' => 'bytes',
         ]);
+    }
+
+    private function supportsLocalRangeStreaming(string $disk): bool
+    {
+        return (string) config("filesystems.disks.{$disk}.driver", 'local') === 'local';
+    }
+
+    private function streamLocalFileWithRange(Request $request, string $absolutePath, string $contentType): Response
+    {
+        $size = filesize($absolutePath);
+        if ($size === false || $size <= 0) {
+            abort(404, 'Stream file unreadable.');
+        }
+
+        $start = 0;
+        $end = $size - 1;
+        $status = 200;
+        $headers = [
+            'Content-Type' => $contentType,
+            'Cache-Control' => 'private, max-age=300',
+            'Accept-Ranges' => 'bytes',
+            'Content-Length' => (string) $size,
+        ];
+
+        $range = $request->header('Range');
+        if (is_string($range) && preg_match('/bytes=(\d*)-(\d*)/i', $range, $matches) === 1) {
+            $rangeStart = $matches[1] !== '' ? (int) $matches[1] : $start;
+            $rangeEnd = $matches[2] !== '' ? (int) $matches[2] : $end;
+
+            if ($rangeStart > $rangeEnd || $rangeStart > $end) {
+                return response('', 416, [
+                    'Content-Range' => "bytes */{$size}",
+                    'Accept-Ranges' => 'bytes',
+                ]);
+            }
+
+            $start = max(0, $rangeStart);
+            $end = min($end, $rangeEnd);
+            $length = ($end - $start) + 1;
+
+            $status = 206;
+            $headers['Content-Length'] = (string) $length;
+            $headers['Content-Range'] = "bytes {$start}-{$end}/{$size}";
+        }
+
+        return response()->stream(function () use ($absolutePath, $start, $end): void {
+            $handle = fopen($absolutePath, 'rb');
+            if (! is_resource($handle)) {
+                return;
+            }
+
+            if ($start > 0) {
+                fseek($handle, $start);
+            }
+
+            $remaining = ($end - $start) + 1;
+            while ($remaining > 0 && ! feof($handle)) {
+                $readLength = min(1024 * 64, $remaining);
+                $buffer = fread($handle, $readLength);
+                if ($buffer === false || $buffer === '') {
+                    break;
+                }
+                echo $buffer;
+                $remaining -= strlen($buffer);
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
+
+            fclose($handle);
+        }, $status, $headers);
     }
 
     private function rewritePlaylistContent(Request $request, Movie $movie, string $playlistPath, string $contents): string
